@@ -1,12 +1,17 @@
-run unittests:
+stages:
+  - build
+
+rust-latest:
+  stage: build
   image: rust:latest
-  stage: test
-  before_script:
-    - cargo install --root . cargo2junit
   script:
-    - cargo test -- -Z unstable-options --format json --report-time | bin/cargo2junit > report.xml
-  artifacts:
-    when: always
-    reports:
-      junit:
-        - report.xml
+    - cargo build --verbose
+    - cargo test --verbose
+
+rust-nightly:
+  stage: build
+  image: rustlang/rust:nightly
+  script:
+    - cargo build --verbose
+    - cargo test --verbose
+  allow_failure: true
