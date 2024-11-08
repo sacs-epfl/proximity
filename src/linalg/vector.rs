@@ -78,7 +78,8 @@ mod tests {
             return TestResult::from_bool(to_check);
         }
 
-        QuickCheck::new()            .tests(10_000)
+        QuickCheck::new()
+            .tests(10_000)
             // force that less than 90% of tests are discarded due to precondition violations
             // i.e. at least 10% of inputs should be valid so that we cover a good range
             .min_tests_passed(1_000)
