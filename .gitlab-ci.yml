@@ -7,6 +7,8 @@ rust-latest:
   script:
     - cargo build --verbose
     - cargo test --verbose
+    - cargo clippy -- -D warnings
+    - cargo fmt -- --check
 
 rust-nightly:
   stage: build
