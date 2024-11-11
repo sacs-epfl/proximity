@@ -1,5 +1,6 @@
 #![allow(dead_code)]
-mod linalg;
+mod cache;
+mod numerics;
 
 fn main() {
     println!("Hello, world!");
