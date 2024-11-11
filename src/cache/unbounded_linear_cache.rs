@@ -76,14 +76,19 @@ mod tests {
     use super::*;
     use quickcheck::{QuickCheck, TestResult};
 
-    const TEST_TOLERANCE : f32 = 1e-8;
+    const TEST_TOLERANCE: f32 = 1e-8;
+    const TEST_MAX_SIZE: usize = COMPTIME_CACHE_SIZE;
 
     #[test]
-    fn identity_always_matches() {
-        fn qc_identity_always_matches(start_state: Vec<(f32, u8)>, key : f32, value : u8) -> TestResult {
+    fn start_always_matches_exactly() {
+        fn qc_start_always_matches_exactly(
+            start_state: Vec<(f32, u8)>,
+            key: f32,
+            value: u8,
+        ) -> TestResult {
             let mut ulc = UnboundedLinearCache::<f32, u8>::new(TEST_TOLERANCE);
-            if !key.is_finite() || start_state.len() > 100 {
-                return TestResult::discard()
+            if !key.is_finite() || start_state.len() > TEST_MAX_SIZE {
+                return TestResult::discard();
             }
 
             ulc.insert(key, value);
@@ -101,6 +106,42 @@ mod tests {
         QuickCheck::new()
             .tests(10_000)
             .min_tests_passed(1_000)
-            .quickcheck(qc_identity_always_matches as fn(Vec<(f32, u8)>, f32, u8) -> TestResult);
+            .quickcheck(
+                qc_start_always_matches_exactly as fn(Vec<(f32, u8)>, f32, u8) -> TestResult,
+            );
+    }
+
+    #[test]
+    fn middle_always_matches() {
+        fn qc_middle_always_matches(
+            start_state: Vec<(f32, u8)>,
+            key: f32,
+            value: u8,
+            end_state: Vec<(f32, u8)>,
+        ) -> TestResult {
+            let mut ulc = UnboundedLinearCache::<f32, u8>::new(TEST_TOLERANCE);
+            if !key.is_finite() || start_state.len() > TEST_MAX_SIZE {
+                return TestResult::discard();
+            }
+
+            for (k, v) in start_state {
+                ulc.insert(k, v);
+            }
+            ulc.insert(key, value);
+            for (k, v) in end_state {
+                ulc.insert(k, v);
+            }
+
+            // we should match on something but we can't know on what
+            TestResult::from_bool(ulc.find(&key).is_some())
+        }
+
+        QuickCheck::new()
+            .tests(10_000)
+            .min_tests_passed(1_000)
+            .quickcheck(
+                qc_middle_always_matches
+                    as fn(Vec<(f32, u8)>, f32, u8, Vec<(f32, u8)>) -> TestResult,
+            );
     }
 }

@@ -1,7 +1,7 @@
 use crate::numerics::comp::ApproxComparable;
 
 // size of caches in implementations where that should be known at comptime
-pub(crate) const COMPTIME_CACHE_SIZE: usize = 1024;
+pub const COMPTIME_CACHE_SIZE: usize = 1024;
 
 pub trait ApproximateCache<K, V>
 where
