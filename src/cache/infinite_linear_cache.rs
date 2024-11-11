@@ -1,4 +1,4 @@
-use crate::cache::cache::*;
+use crate::cache::approximate_cache::*;
 use crate::numerics::comp::*;
 
 /// A cache implementation that checks all entries one-by-one, without eviction
@@ -22,10 +22,8 @@ where
             .lines
             .iter()
             .find(|&(k, _v)| key.roughly_matches(k, self.tolerance));
-        match x {
-            None => None,
-            Some((_u, v)) => Some(v.clone()),
-        }
+
+        x.map(|(_u, v)| v.clone())
     }
 
     // to insert a new value in a
