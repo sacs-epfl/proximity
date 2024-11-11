@@ -70,3 +70,37 @@ where
         self.lines.len()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use quickcheck::{QuickCheck, TestResult};
+
+    const TEST_TOLERANCE : f32 = 1e-8;
+
+    #[test]
+    fn identity_always_matches() {
+        fn qc_identity_always_matches(start_state: Vec<(f32, u8)>, key : f32, value : u8) -> TestResult {
+            let mut ulc = UnboundedLinearCache::<f32, u8>::new(TEST_TOLERANCE);
+            if !key.is_finite() || start_state.len() > 100 {
+                return TestResult::discard()
+            }
+
+            ulc.insert(key, value);
+            for (k, v) in start_state {
+                ulc.insert(k, v);
+            }
+
+            if let Some(x) = ulc.find(&key) {
+                TestResult::from_bool(x == value)
+            } else {
+                TestResult::failed()
+            }
+        }
+
+        QuickCheck::new()
+            .tests(10_000)
+            .min_tests_passed(1_000)
+            .quickcheck(qc_identity_always_matches as fn(Vec<(f32, u8)>, f32, u8) -> TestResult);
+    }
+}
