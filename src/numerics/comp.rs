@@ -1,4 +1,4 @@
-use super::vector::F32Vector;
+use super::f32vector::F32Vector;
 
 // rust Ord trait has some issues
 pub trait ApproxComparable {
