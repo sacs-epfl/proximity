@@ -1,2 +1,2 @@
 pub mod comp;
-mod f32vector;
+pub mod f32vector;
