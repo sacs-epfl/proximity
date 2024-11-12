@@ -1,20 +1,19 @@
-use crate::cache::approximate_cache::*;
-use crate::numerics::comp::*;
-
+use crate::cache::approximate_cache::ApproximateCache;
+use crate::numerics::comp::ApproxComparable;
 /// A cache implementation that checks all entries one-by-one, without eviction
 /// ## Generic Types
 /// The types K and V are used for the cache keys and values respectively.
 ///
-/// K should be ApproxComparable, i.e. the compiler should know how to
+/// K should be `ApproxComparable`, i.e. the compiler should know how to
 /// decide that two K's are 'close enough' given a certain tolerance.
 ///
-/// V should be Clone so that the user can do whatever they want with a returned
+/// V should be `Clone` so that the user can do whatever they want with a returned
 /// value without messing with the actual cache line.
 ///
 /// ## Constructors
 /// Use the ```from``` method to create a new cache. You will be asked to provide a
 /// tolerance for the search and (optionally) an initial allocated capacity in memory.
-/// ```tolerance``` indicates the searching sensitivity (see ApproxComparable),
+/// ```tolerance``` indicates the searching sensitivity (see `ApproxComparable`),
 /// which is a constant w.r.t. to the queried K (for now).
 struct UnboundedLinearCache<K, V>
 where
@@ -73,6 +72,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::cache::approximate_cache::COMPTIME_CACHE_SIZE;
+
     use super::*;
     use quickcheck::{QuickCheck, TestResult};
 
@@ -92,9 +93,11 @@ mod tests {
             }
 
             ulc.insert(key, value);
-            for (k, v) in start_state {
+            for &(k, v) in start_state.iter() {
                 ulc.insert(k, v);
             }
+
+            assert!(ulc.len() == start_state.len() + 1);
 
             if let Some(x) = ulc.find(&key) {
                 TestResult::from_bool(x == value)
@@ -124,13 +127,15 @@ mod tests {
                 return TestResult::discard();
             }
 
-            for (k, v) in start_state {
+            for &(k, v) in start_state.iter() {
                 ulc.insert(k, v);
             }
             ulc.insert(key, value);
-            for (k, v) in end_state {
+            for &(k, v) in end_state.iter() {
                 ulc.insert(k, v);
             }
+
+            assert!(ulc.len() == start_state.len() + end_state.len() + 1);
 
             // we should match on something but we can't know on what
             TestResult::from_bool(ulc.find(&key).is_some())
