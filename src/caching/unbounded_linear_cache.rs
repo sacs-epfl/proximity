@@ -1,4 +1,4 @@
-use crate::cache::approximate_cache::ApproximateCache;
+use crate::caching::approximate_cache::ApproximateCache;
 use crate::numerics::comp::ApproxComparable;
 /// A cache implementation that checks all entries one-by-one, without eviction
 /// ## Generic Types
@@ -72,7 +72,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::cache::approximate_cache::COMPTIME_CACHE_SIZE;
+    use crate::caching::approximate_cache::COMPTIME_CACHE_SIZE;
 
     use super::*;
     use quickcheck::{QuickCheck, TestResult};

@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-mod cache;
+mod caching;
 mod numerics;
 
 fn main() {
