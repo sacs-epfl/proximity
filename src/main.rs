@@ -23,18 +23,25 @@ mod tests {
         let v1: Vec<_> = (0..128)
             .map(|_| f32::from(rng.gen_range(-20 as i16..20)))
             .collect();
-        let v2: Vec<_> = (0..128)
+        let v2s: Vec<f32> = (0..(128 * 200))
             .map(|_| f32::from(rng.gen_range(-20 as i16..20)))
             .collect();
 
+        assert!(v1.len() == 128);
         let v1_f32v = F32Vector::from(&v1[..]);
-        let v2_f32v = F32Vector::from(&v2[..]);
         let start_t = Instant::now();
         let mut sum = 0.0;
-        for _ in 0..10_000_000 {
-            sum += v1_f32v.l2_dist(&v2_f32v);
+        for _ in 0..200_000 {
+            for v2_i in (0..v2s.len()).step_by(128) {
+                let v2 = &v2s[v2_i..v2_i + 128];
+                let v2_f32v = F32Vector::from(v2);
+                assert!(v2.len() == 128);
+
+                sum += v1_f32v.l2_dist_aarch64(&v2_f32v);
+            }
         }
+
         let elapsed = start_t.elapsed();
-        println!("{:?} - {sum}", elapsed)
+        println!("{:?} - {sum} - {}", elapsed, v2s.len() * 128 * 200_000)
     }
 }
