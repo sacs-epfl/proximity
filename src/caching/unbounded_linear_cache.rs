@@ -52,12 +52,12 @@ where
     // to find a match in an unbounded cache, iterate over all cache lines
     // and return early if you have something
     fn find(&self, key: &K) -> Option<V> {
-        let x = self
+        let potential_match = self
             .lines
             .iter()
-            .find(|&(k, _v)| key.roughly_matches(k, self.tolerance));
+            .find(|(k, _v)| key.roughly_matches(k, self.tolerance));
 
-        x.map(|(_u, v)| v.clone())
+        potential_match.map(|(_u, v)| v.clone())
     }
 
     // inserting a new value in a linear cache == pushing it at the end for future scans
