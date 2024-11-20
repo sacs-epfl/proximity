@@ -1,0 +1,17 @@
+image: rustlang/rust:nightly
+
+run-tests:
+  script:
+    - rustc --version && cargo --version 
+    - cargo test --release --verbose 
+
+clippy:
+  script:
+    - rustup component add clippy
+    - cargo clippy
+
+format-check:
+  script:
+    - rustup component add rustfmt
+    - cargo fmt -- --check
+
