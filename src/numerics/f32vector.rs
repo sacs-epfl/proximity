@@ -1,5 +1,5 @@
-#[cfg(target_arch = "aarch64")]
-use std::arch::aarch64::*;
+use std::simd::f32x8;
+use std::simd::num::SimdFloat;
 
 pub struct F32Vector<'a> {
     array: &'a [f32],
@@ -23,40 +23,18 @@ impl<'a> F32Vector<'a> {
     /// In release mode, the longest vector will be silently truncated.
     #[inline]
     pub fn l2_dist_squared(&self, other: &F32Vector<'a>) -> f32 {
-        debug_assert!(self.len() == other.len());
-
-        self.array
-            .iter()
-            .zip(other.array)
-            .map(|(x, y)| {
-                let diff = x - y;
-                diff * diff
-            })
-            .sum::<f32>()
-    }
-
-    /// Slightly modified from :
-    /// - https://github.com/lancedb/lancedb
-    /// - https://blog.lancedb.com/my-simd-is-faster-than-yours-fb2989bf25e7/
-    /// Original authors : Chang She, Lei Xu et al.
-    /// Licensed under Apache-2
-    /// todo before publication : include their license
-    #[inline]
-    #[cfg(target_arch = "aarch64")]
-    pub fn l2_dist_aarch64(&self, other: &F32Vector<'a>) -> f32 {
-        unsafe {
-            let len = self.len() / 4 * 4;
-            let buf = [0.0_f32; 4];
-            let mut sum = vld1q_f32(buf.as_ptr());
-            for i in (0..len).step_by(4) {
-                let left = vld1q_f32(self.array.as_ptr().add(i));
-                let right = vld1q_f32(other.array.as_ptr().add(i));
-                let sub = vsubq_f32(left, right);
-                sum = vfmaq_f32(sum, sub, sub);
-            }
-            vaddvq_f32(sum)
-            //sum += (&self.array[len..], &other.array[len..]);
+        let mut sum = f32x8::splat(0.0);
+        for (chka, chkb) in self
+            .array
+            .chunks_exact(f32x8::LEN)
+            .zip(other.array.chunks_exact(f32x8::LEN))
+        {
+            let simd_a = f32x8::from_slice(chka);
+            let simd_b = f32x8::from_slice(chkb);
+            let diff = simd_a - simd_b;
+            sum += diff * diff;
         }
+        sum.reduce_sum()
     }
 
     /// # Usage
