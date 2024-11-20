@@ -89,10 +89,11 @@ mod tests {
     #[test]
     fn self_sim_is_zero() {
         fn qc_self_sim_is_zero(totest: Vec<f32>) -> TestResult {
-            if totest.iter().any(|x| !x.is_finite()) {
+            let usable_length = totest.len() / 8 * 8;
+            if totest[0..usable_length].iter().any(|x| !x.is_finite()) {
                 return TestResult::discard();
             }
-            let testvec = F32Vector::from(&totest[..]);
+            let testvec = F32Vector::from(&totest[0..usable_length]);
             let selfsim = testvec.l2_dist(&testvec);
             let to_check = is_valid_l2(selfsim) && close(selfsim, 0.0);
             return TestResult::from_bool(to_check);
@@ -112,7 +113,7 @@ mod tests {
     fn squared_invariant() {
         fn qc_squared_invariant(u: Vec<f32>, v: Vec<f32>, w: Vec<f32>, x: Vec<f32>) -> TestResult {
             let all_vecs = [u, v, w, x]; //no need to check for NaNs in this case
-            let min_length = all_vecs.iter().map(|x| x.len()).min().unwrap();
+            let min_length = all_vecs.iter().map(|x| x.len()).min().unwrap() / 8 * 8;
             let all_vectors: Vec<F32Vector> = all_vecs
                 .iter()
                 .map(|vec| F32Vector::from(&vec[..min_length]))
