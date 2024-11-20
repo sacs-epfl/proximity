@@ -1,9 +1,14 @@
 image: rustlang/rust:nightly
 
-run-tests:
+run-tests-release:
   script:
     - rustc --version && cargo --version 
     - cargo test --release --verbose 
+
+run-tests-debug:
+  script:
+    - rustc --version && cargo --version 
+    - cargo test --verbose 
 
 clippy:
   script:

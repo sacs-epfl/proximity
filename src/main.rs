@@ -33,7 +33,7 @@ mod tests {
         let v1_f32v = F32Vector::from(&v1[..]);
         let start_t = Instant::now();
         let mut sum = 0.0;
-        for _ in 0..200_000 {
+        for _ in 0..20_000 {
             for v2_i in (0..v2s.len()).step_by(128) {
                 let v2 = &v2s[v2_i..v2_i + 128];
                 let v2_f32v = F32Vector::from(v2);
