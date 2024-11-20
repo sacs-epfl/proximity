@@ -8,6 +8,7 @@ mod numerics;
 fn main() {
     println!("Hello, world!");
 }
+
 #[cfg(test)]
 mod tests {
     use std::time::Instant;
@@ -37,7 +38,7 @@ mod tests {
                 let v2_f32v = F32Vector::from(v2);
                 assert!(v2.len() == 128);
 
-                sum += v1_f32v.l2_dist_aarch64(&v2_f32v);
+                sum += v1_f32v.l2_dist_squared(&v2_f32v);
             }
         }
 

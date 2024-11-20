@@ -1,3 +1,4 @@
+#[cfg(target_arch = "aarch64")]
 use std::arch::aarch64::*;
 
 pub struct F32Vector<'a> {
@@ -35,12 +36,13 @@ impl<'a> F32Vector<'a> {
     }
 
     // Slightly modified from :
-    // - https://github.com/lancedb/lancedb?ref=blog.lancedb.com
+    // - https://github.com/lancedb/lancedb
     // - https://blog.lancedb.com/my-simd-is-faster-than-yours-fb2989bf25e7/
     // Original authors : Chang She, Lei Xu et al.
     // Licensed under Apache-2
     // todo before publication : include their license
     #[inline]
+    #[cfg(target_arch = "aarch64")]
     pub fn l2_dist_aarch64(&self, other: &F32Vector<'a>) -> f32 {
         unsafe {
             let len = self.len() / 4 * 4;
