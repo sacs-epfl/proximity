@@ -11,7 +11,6 @@ impl ApproxComparable for f32 {
     }
 }
 
-// f32 comparisons are implemented in raw aarch64, we can use them conditionally
 impl<'a> ApproxComparable for F32Vector<'a> {
     fn roughly_matches(&self, target: &F32Vector<'a>, square_tolerance: f32) -> bool {
         self.l2_dist_squared(target) < square_tolerance
