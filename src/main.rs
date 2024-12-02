@@ -1,14 +1,38 @@
 #![allow(dead_code)]
-#![feature(portable_simd, test)]
+#![feature(portable_simd, test, array_chunks)]
+
+use std::path::Path;
+
+use caching::approximate_cache::ApproximateCache;
+use fs::file_manager;
+use numerics::f32vector::F32Vector;
 
 extern crate rand;
 extern crate test;
 
 mod caching;
 mod numerics;
+mod fs;
+
+use crate::caching::unbounded_linear_cache::UnboundedLinearCache;
 
 fn main() {
-    println!("Hello, world!");
+    let vecs = file_manager::read_from_file_f32(Path::new("/home/mathis/balblou"));
+    let mut ulc = UnboundedLinearCache::<F32Vector, ()>::new(1.0);
+
+    let mut count: u32 = 0;
+    for vec in vecs.iter() {
+        let f32v = F32Vector::from(&vec[..]);
+        let found = ulc.find(&f32v).is_some();
+
+        if found {
+            count += 1;
+        } else {
+            ulc.insert(f32v, ());
+        }
+    }
+
+    println!("{}", count)
 }
 
 #[cfg(test)]
@@ -27,7 +51,7 @@ mod tests {
         let v1: Vec<_> = (0..128)
             .map(|_| f32::from(rng.gen_range(-20 as i16..20)))
             .collect();
-        let v2s: Vec<f32> = (0 as u64..(128 * 20_000_000))
+        let v2s: Vec<f32> = (0 as u64..(128 * 10_000))
             .map(|_| f32::from(rng.gen_range(-20 as i16..20)))
             .collect();
 
