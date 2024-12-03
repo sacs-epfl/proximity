@@ -1,6 +1,7 @@
 use std::simd::f32x8;
 use std::simd::num::SimdFloat;
 
+#[derive(Debug)]
 pub struct F32Vector<'a> {
     array: &'a [f32],
 }
