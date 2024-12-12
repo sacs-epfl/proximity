@@ -20,7 +20,8 @@ where
     K: ApproxComparable,
     V: Clone,
 {
-    lines: Vec<(K, V)>,
+    keys: Vec<K>,
+    values: Vec<V>,
     tolerance: f32,
 }
 
@@ -31,14 +32,16 @@ where
 {
     pub fn new(tolerance: f32) -> Self {
         UnboundedLinearCache {
-            lines: Vec::new(),
+            keys: Vec::new(),
+            values: Vec::new(),
             tolerance,
         }
     }
 
     pub fn with_initial_capacity(tolerance: f32, capacity: usize) -> Self {
         UnboundedLinearCache {
-            lines: Vec::with_capacity(capacity),
+            keys: Vec::with_capacity(capacity),
+            values: Vec::with_capacity(capacity),
             tolerance,
         }
     }
@@ -51,22 +54,23 @@ where
 {
     // to find a match in an unbounded cache, iterate over all cache lines
     // and return early if you have something
-    fn find(&self, key: &K) -> Option<V> {
+    fn find(&self, to_find: &K) -> Option<V> {
         let potential_match = self
-            .lines
+            .keys
             .iter()
-            .find(|(k, _v)| key.roughly_matches(k, self.tolerance));
+            .position(|key| to_find.roughly_matches(key, self.tolerance));
 
-        potential_match.map(|(_u, v)| v.clone())
+        potential_match.map(|i| self.values[i].clone())
     }
 
     // inserting a new value in a linear cache == pushing it at the end for future scans
     fn insert(&mut self, key: K, value: V) {
-        self.lines.push((key, value));
+        self.keys.push(key);
+        self.values.push(value);
     }
 
     fn len(&self) -> usize {
-        self.lines.len()
+        self.keys.len()
     }
 }
 
