@@ -1,5 +1,7 @@
-use std::simd::f32x8;
-use std::simd::num::SimdFloat;
+use std::simd::{num::SimdFloat, Simd};
+
+const SIMD_LANECOUNT: usize = 8;
+type SimdF32 = Simd<f32, SIMD_LANECOUNT>;
 
 pub struct F32Vector<'a> {
     array: &'a [f32],
@@ -24,16 +26,16 @@ impl<'a> F32Vector<'a> {
     #[inline]
     pub fn l2_dist_squared(&self, othr: &F32Vector<'a>) -> f32 {
         debug_assert!(self.len() == othr.len());
-        debug_assert!(self.len() % f32x8::LEN == 0);
+        debug_assert!(self.len() % SIMD_LANECOUNT == 0);
 
-        let mut intermediate_sum_x8: f32x8 = f32x8::splat(0.0);
+        let mut intermediate_sum_x8 = Simd::<f32, SIMD_LANECOUNT>::splat(0.0);
 
-        let self_chunks = self.array.chunks_exact(f32x8::LEN);
-        let othr_chunks = othr.array.chunks_exact(f32x8::LEN);
+        let self_chunks = self.array.chunks_exact(SIMD_LANECOUNT);
+        let othr_chunks = othr.array.chunks_exact(SIMD_LANECOUNT);
 
         for (slice_self, slice_othr) in self_chunks.zip(othr_chunks) {
-            let f32x8_slf = f32x8::from_slice(slice_self);
-            let f32x8_oth = f32x8::from_slice(slice_othr);
+            let f32x8_slf = SimdF32::from_slice(slice_self);
+            let f32x8_oth = SimdF32::from_slice(slice_othr);
             let diff = f32x8_slf - f32x8_oth;
             intermediate_sum_x8 += diff * diff;
         }
