@@ -54,7 +54,7 @@ where
 {
     // to find a match in an unbounded cache, iterate over all cache lines
     // and return early if you have something
-    fn find(&self, to_find: &K) -> Option<V> {
+    fn find(&mut self, to_find: &K) -> Option<V> {
         let potential_match = self
             .keys
             .iter()
