@@ -43,7 +43,7 @@ use super::list_node::{Node, SharedNode};
 /// - `find(&mut self, key: &K) -> Option<V>`: Attempts to find a value matching the given key approximately. Promotes the found key to the head of the list.
 /// - `insert(&mut self, key: K, value: V)`: Inserts a key-value pair into the cache. Evicts the least recently used item if the cache is full.
 /// - `len(&self) -> usize`: Returns the current size of the cache.
-struct BoundedLinearCache<K, V> {
+pub struct BoundedLinearCache<K, V> {
     max_capacity: usize,
     map: HashMap<K, SharedNode<K, V>>,
     list: DoublyLinkedList<K, V>,
@@ -83,7 +83,7 @@ where
 }
 
 impl<K, V> BoundedLinearCache<K, V> {
-    fn new(max_capacity: usize, tolerance: f32) -> Self {
+    pub fn new(max_capacity: usize, tolerance: f32) -> Self {
         assert!(max_capacity > 0);
         assert!(tolerance > 0.0);
         Self {

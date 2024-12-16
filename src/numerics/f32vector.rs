@@ -3,7 +3,7 @@ use std::simd::{num::SimdFloat, Simd};
 const SIMD_LANECOUNT: usize = 8;
 type SimdF32 = Simd<f32, SIMD_LANECOUNT>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct F32Vector<'a> {
     array: &'a [f32],
 }
@@ -60,6 +60,26 @@ impl<'a> F32Vector<'a> {
 impl<'a> From<&'a [f32]> for F32Vector<'a> {
     fn from(value: &'a [f32]) -> Self {
         F32Vector { array: value }
+    }
+}
+
+impl PartialEq for F32Vector<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.array
+            .iter()
+            .zip(other.array.iter())
+            .all(|(&a, &b)| a == b)
+    }
+}
+
+impl Eq for F32Vector<'_> {}
+
+impl std::hash::Hash for F32Vector<'_> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        // Iterate through each element of the slice and hash it
+        for &value in self.array {
+            value.to_bits().hash(state); // Convert `f32` to its bit representation for consistent hashing
+        }
     }
 }
 
