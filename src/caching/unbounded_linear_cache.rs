@@ -15,7 +15,7 @@ use crate::numerics::comp::ApproxComparable;
 /// tolerance for the search and (optionally) an initial allocated capacity in memory.
 /// ```tolerance``` indicates the searching sensitivity (see `ApproxComparable`),
 /// which is a constant w.r.t. to the queried K (for now).
-struct UnboundedLinearCache<K, V>
+pub struct UnboundedLinearCache<K, V>
 where
     K: ApproxComparable,
     V: Clone,

@@ -3,6 +3,7 @@ use std::simd::{num::SimdFloat, Simd};
 const SIMD_LANECOUNT: usize = 8;
 type SimdF32 = Simd<f32, SIMD_LANECOUNT>;
 
+#[derive(Debug)]
 pub struct F32Vector<'a> {
     array: &'a [f32],
 }
