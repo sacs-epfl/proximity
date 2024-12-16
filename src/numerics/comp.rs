@@ -16,3 +16,11 @@ impl<'a> ApproxComparable for F32Vector<'a> {
         self.l2_dist_squared(target) < square_tolerance
     }
 }
+
+impl ApproxComparable for i16 {
+    fn roughly_matches(&self, instore: &Self, tolerance: f32) -> bool {
+        let fself = f32::from(*self);
+        let foth = f32::from(*instore);
+        fself.roughly_matches(&foth, tolerance)
+    }
+}

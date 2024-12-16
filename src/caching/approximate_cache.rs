@@ -8,7 +8,7 @@ where
     K: ApproxComparable,
     V: Clone,
 {
-    fn find(&self, key: &K) -> Option<V>;
+    fn find(&mut self, key: &K) -> Option<V>;
     fn insert(&mut self, key: K, value: V);
     fn len(&self) -> usize;
 }
