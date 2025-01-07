@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 
+use pyo3::{pyclass, pymethods};
+
 use crate::numerics::comp::ApproxComparable;
 
 use crate::caching::approximate_cache::ApproximateCache;
@@ -43,6 +45,7 @@ use super::list_node::{Node, SharedNode};
 /// - `find(&mut self, key: &K) -> Option<V>`: Attempts to find a value matching the given key approximately. Promotes the found key to the head of the list.
 /// - `insert(&mut self, key: K, value: V)`: Inserts a key-value pair into the cache. Evicts the least recently used item if the cache is full.
 /// - `len(&self) -> usize`: Returns the current size of the cache.
+
 pub struct BoundedLinearCache<K, V> {
     max_capacity: usize,
     map: HashMap<K, SharedNode<K, V>>,
@@ -63,13 +66,13 @@ where
         let node: SharedNode<K, V> = self.map.get(matching).cloned()?;
         self.list.remove(node.clone());
         self.list.add_to_head(node.clone());
-        return Some(node.borrow().value.clone());
+        return Some(node.try_lock().unwrap().value.clone());
     }
 
     fn insert(&mut self, key: K, value: V) {
         if self.len() == self.max_capacity {
             if let Some(tail) = self.list.remove_tail() {
-                self.map.remove(&tail.borrow().key);
+                self.map.remove(&tail.try_lock().unwrap().key);
             }
         }
         let new_node = Node::new(key.clone(), value);
@@ -94,6 +97,38 @@ impl<K, V> BoundedLinearCache<K, V> {
         }
     }
 }
+
+macro_rules! create_pythonized_interface {
+    ($name: ident, $type: ident) => {
+        #[pyclass]
+        pub struct $name {
+            inner: BoundedLinearCache::<$type, $type>,
+        }
+        #[pymethods]
+        impl $name {
+            #[new]
+            pub fn new(max_capacity: usize, tolerance: f32) -> Self {
+                Self {
+                    inner: BoundedLinearCache::new(max_capacity, tolerance),
+                }
+            }
+
+            fn find(&mut self, k : $type) -> Option<$type> {
+                self.inner.find(&k)
+            }
+
+            fn insert(&mut self, key: $type, value: $type) {
+                self.inner.insert(key, value)
+            }
+
+            fn len(&self) -> usize {
+                self.inner.len()
+            }
+        }
+    };
+}
+
+create_pythonized_interface!(I16Cache, i16);
 
 #[cfg(test)]
 mod tests {
