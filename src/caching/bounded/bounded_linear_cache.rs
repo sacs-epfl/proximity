@@ -18,20 +18,20 @@ use super::list_node::{Node, SharedNode};
 ///
 /// # Example Usage
 /// ```
-/// use crate::caching::bounded_linear_cache::BoundedLinearCache;
+/// use proximity::caching::bounded::bounded_linear_cache::BoundedLinearCache;
+/// use proximity::caching::approximate_cache::ApproximateCache;
 ///
+/// let mut cache = BoundedLinearCache::new(3, 2.0);
 ///
-/// let mut cache = BoundedLinearCache::new(3, 0.1);
+/// cache.insert(10 as i16, "Value 1");
+/// cache.insert(20, "Value 2");
+/// cache.insert(30, "Value 3");
 ///
-/// cache.insert(1.0, "Value 1");
-/// cache.insert(2.0, "Value 2");
-/// cache.insert(3.0, "Value 3");
-///
-/// assert_eq!(cache.find(&1.05), Some("Value 1"));
+/// assert_eq!(cache.find(&11), Some("Value 1"));
 /// assert_eq!(cache.len(), 3);
 ///
-/// cache.insert(4.0, "Value 4"); // Evicts the least recently used (Key(2.0))
-/// assert!(cache.find(&2.0).is_none());
+/// cache.insert(40, "Value 4"); // Evicts the least recently used (Key(20))
+/// assert!(cache.find(&20).is_none());
 /// ```
 ///
 /// # Type Parameters
