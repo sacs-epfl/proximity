@@ -1,11 +1,12 @@
 [package]
-name = "proximity"
+name = "proximity-cache"
 version = "0.1.0"
 edition = "2021"
 authors = ["SaCS laboratory, EPFL. Correspond with mathis[d o t]randl[a t]epfl.ch"]
 description = "Experiments on approximate vector search in high-dimensional spaces"
 readme = "README.md"
 license-file = "LICENSE"
+repository = "https://gitlab.epfl.ch/randl/proximity"
 
 [dependencies]
 npyz = "0.8.3"
@@ -15,9 +16,9 @@ rand = "*"
 quickcheck = "1.0.3"
 
 [lib]
-name = "proximity"
+name = "proximitylib"
 path = "src/lib.rs"
 
 [[bin]]
-name = "proximity-bin"
+name = "proximitybin"
 path = "src/main.rs"

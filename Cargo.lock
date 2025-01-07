@@ -234,7 +234,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "proximity"
+name = "proximity-cache"
 version = "0.1.0"
 dependencies = [
  "npyz",
