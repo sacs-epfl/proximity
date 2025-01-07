@@ -18,8 +18,8 @@ use super::list_node::{Node, SharedNode};
 ///
 /// # Example Usage
 /// ```
-/// use proximity::caching::bounded::bounded_linear_cache::BoundedLinearCache;
-/// use proximity::caching::approximate_cache::ApproximateCache;
+/// use proximitylib::caching::bounded::bounded_linear_cache::BoundedLinearCache;
+/// use proximitylib::caching::approximate_cache::ApproximateCache;
 ///
 /// let mut cache = BoundedLinearCache::new(3, 2.0);
 ///
