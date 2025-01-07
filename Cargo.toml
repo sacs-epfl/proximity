@@ -10,7 +10,7 @@ repository = "https://gitlab.epfl.ch/randl/proximity"
 
 [dependencies]
 npyz = "0.8.3"
-rand = "*"
+rand = "0.8.5"
 
 [dev-dependencies]
 quickcheck = "1.0.3"
