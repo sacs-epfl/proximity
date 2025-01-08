@@ -2,25 +2,25 @@ image: rustlang/rust:nightly
 
 run-tests-release:
   script:
-    - cd proximity-rs
+    - cd core
     - rustc --version && cargo --version 
     - cargo test --release --verbose 
 
 run-tests-debug:
   script:
-    - cd proximity-rs
+    - cd core
     - rustc --version && cargo --version 
     - cargo test --verbose 
 
 clippy:
   script:
-    - cd proximity-rs
+    - cd core
     - rustup component add clippy
     - cargo clippy
 
 format-check:
   script:
-    - cd proximity-rs
+    - cd core
     - rustup component add rustfmt
     - cargo fmt -- --check
 
