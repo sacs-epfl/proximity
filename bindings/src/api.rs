@@ -1,6 +1,6 @@
-use proximipy::caching::bounded::bounded_linear_cache::BoundedLinearCache;
 use proximipy::caching::approximate_cache::ApproximateCache;
-use pyo3::{pymethods, pyclass};
+use proximipy::caching::bounded::bounded_linear_cache::BoundedLinearCache;
+use pyo3::{pyclass, pymethods};
 
 macro_rules! create_pythonized_interface {
     ($name: ident, $type: ident) => {
