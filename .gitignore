@@ -1,4 +1,4 @@
-proximity-rs/target
+**/target
 /.vscode
-/res
-.DS_Store
+proximity-rs/res
+**/.DS_Store
