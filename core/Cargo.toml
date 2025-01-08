@@ -1,6 +1,6 @@
 [package]
 name = "proximity-cache"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["SaCS laboratory, EPFL. Correspond with mathis[d o t]randl[a t]epfl.ch"]
 description = "Experiments on approximate vector search in high-dimensional spaces"
