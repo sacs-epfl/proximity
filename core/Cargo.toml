@@ -4,7 +4,7 @@ version = "0.1.1"
 edition = "2021"
 authors = ["SaCS laboratory, EPFL. Correspond with mathis[d o t]randl[a t]epfl.ch"]
 description = "Experiments on approximate vector search in high-dimensional spaces"
-readme = "README.md"
+readme = "../README.md"
 license = "MIT"
 repository = "https://gitlab.epfl.ch/randl/proximity"
 
