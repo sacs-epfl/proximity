@@ -1,0 +1,27 @@
+[package]
+name = "proximity-cache"
+version = "0.1.0"
+edition = "2021"
+authors = ["SaCS laboratory, EPFL. Correspond with mathis[d o t]randl[a t]epfl.ch"]
+description = "Experiments on approximate vector search in high-dimensional spaces"
+readme = "README.md"
+license = "MIT"
+repository = "https://gitlab.epfl.ch/randl/proximity"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "proximipy"
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+
+[[bin]]
+name = "proximitybin"
+path = "src/main.rs"
+
+[dev-dependencies]
+quickcheck = "1.0.3"
+
+[dependencies]
+pyo3 = "0.23.3"
+npyz = "0.8.3"
+rand = "0.8.5"
