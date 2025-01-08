@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::rc::Rc;
 
 use crate::caching::bounded::list_node::SharedNode;
 
@@ -16,11 +16,11 @@ impl<K, V> DoublyLinkedList<K, V> {
     }
 
     pub(crate) fn add_to_head(&mut self, node: SharedNode<K, V>) {
-        node.try_lock().unwrap().next = self.head.clone();
-        node.try_lock().unwrap().prev = None;
+        node.borrow_mut().next = self.head.clone();
+        node.borrow_mut().prev = None;
 
         if let Some(head) = self.head.clone() {
-            head.try_lock().unwrap().prev = Some(Arc::downgrade(&node));
+            head.borrow_mut().prev = Some(Rc::downgrade(&node));
         }
 
         self.head = Some(node.clone());
@@ -31,17 +31,17 @@ impl<K, V> DoublyLinkedList<K, V> {
     }
 
     pub(crate) fn remove(&mut self, node: SharedNode<K, V>) {
-        let prev = node.try_lock().unwrap().prev.clone();
-        let next = node.try_lock().unwrap().next.clone();
+        let prev = node.borrow().prev.clone();
+        let next = node.borrow().next.clone();
 
         if let Some(prev_node) = prev.as_ref().and_then(|weak| weak.upgrade()) {
-            prev_node.try_lock().unwrap().next = next.clone();
+            prev_node.borrow_mut().next = next.clone();
         } else {
             self.head = next.clone();
         }
 
         if let Some(next_node) = next {
-            next_node.try_lock().unwrap().prev = prev;
+            next_node.borrow_mut().prev = prev;
         } else {
             self.tail = prev.and_then(|weak| weak.upgrade());
         }
@@ -50,9 +50,10 @@ impl<K, V> DoublyLinkedList<K, V> {
     pub(crate) fn remove_tail(&mut self) -> Option<SharedNode<K, V>> {
         if let Some(tail) = self.tail.clone() {
             self.remove(tail.clone());
-            return Some(tail);
+            Some(tail)
+        } else {
+            None
         }
-        None
     }
 }
 
@@ -68,12 +69,12 @@ mod tests {
         let node2 = Node::new(2, 20);
 
         list.add_to_head(node1.clone());
-        assert_eq!(list.head.as_ref().unwrap().try_lock().unwrap().key, 1);
-        assert_eq!(list.tail.as_ref().unwrap().try_lock().unwrap().key, 1);
+        assert_eq!(list.head.as_ref().unwrap().borrow().key, 1);
+        assert_eq!(list.tail.as_ref().unwrap().borrow().key, 1);
 
         list.add_to_head(node2.clone());
-        assert_eq!(list.head.as_ref().unwrap().try_lock().unwrap().key, 2);
-        assert_eq!(list.tail.as_ref().unwrap().try_lock().unwrap().key, 1);
+        assert_eq!(list.head.as_ref().unwrap().borrow().key, 2);
+        assert_eq!(list.tail.as_ref().unwrap().borrow().key, 1);
     }
 
     #[test]
@@ -90,13 +91,13 @@ mod tests {
         // List is now: {3, 2, 1}
         list.remove(node2.clone());
         // List should now be: {3, 1}
-        assert_eq!(list.head.as_ref().unwrap().try_lock().unwrap().key, 3);
-        assert_eq!(list.tail.as_ref().unwrap().try_lock().unwrap().key, 1);
+        assert_eq!(list.head.as_ref().unwrap().borrow().key, 3);
+        assert_eq!(list.tail.as_ref().unwrap().borrow().key, 1);
 
         list.remove(node3.clone());
         // List should now be: {1}
-        assert_eq!(list.head.as_ref().unwrap().try_lock().unwrap().key, 1);
-        assert_eq!(list.tail.as_ref().unwrap().try_lock().unwrap().key, 1);
+        assert_eq!(list.head.as_ref().unwrap().borrow().key, 1);
+        assert_eq!(list.tail.as_ref().unwrap().borrow().key, 1);
 
         list.remove(node1.clone());
         // List should now be empty
@@ -115,13 +116,13 @@ mod tests {
 
         // List is now: {2, 1}
         let removed_tail = list.remove_tail().unwrap();
-        assert_eq!(removed_tail.try_lock().unwrap().key, 1);
+        assert_eq!(removed_tail.borrow().key, 1);
         // List should now be: {2}
-        assert_eq!(list.head.as_ref().unwrap().try_lock().unwrap().key, 2);
-        assert_eq!(list.tail.as_ref().unwrap().try_lock().unwrap().key, 2);
+        assert_eq!(list.head.as_ref().unwrap().borrow().key, 2);
+        assert_eq!(list.tail.as_ref().unwrap().borrow().key, 2);
 
         let removed_tail = list.remove_tail().unwrap();
-        assert_eq!(removed_tail.try_lock().unwrap().key, 2);
+        assert_eq!(removed_tail.borrow().key, 2);
         // List should now be empty
         assert!(list.head.is_none());
         assert!(list.tail.is_none());
@@ -139,17 +140,17 @@ mod tests {
         list.add_to_head(node3.clone());
 
         // List is now: {3, 2, 1}
-        assert_eq!(list.head.as_ref().unwrap().try_lock().unwrap().key, 3);
-        assert_eq!(list.tail.as_ref().unwrap().try_lock().unwrap().key, 1);
+        assert_eq!(list.head.as_ref().unwrap().borrow().key, 3);
+        assert_eq!(list.tail.as_ref().unwrap().borrow().key, 1);
 
         list.remove(node1.clone());
         // List should now be: {3, 2}
-        assert_eq!(list.head.as_ref().unwrap().try_lock().unwrap().key, 3);
-        assert_eq!(list.tail.as_ref().unwrap().try_lock().unwrap().key, 2);
+        assert_eq!(list.head.as_ref().unwrap().borrow().key, 3);
+        assert_eq!(list.tail.as_ref().unwrap().borrow().key, 2);
 
         list.add_to_head(node1.clone());
         // List should now be: {1, 3, 2}
-        assert_eq!(list.head.as_ref().unwrap().try_lock().unwrap().key, 1);
-        assert_eq!(list.tail.as_ref().unwrap().try_lock().unwrap().key, 2);
+        assert_eq!(list.head.as_ref().unwrap().borrow().key, 1);
+        assert_eq!(list.tail.as_ref().unwrap().borrow().key, 2);
     }
 }

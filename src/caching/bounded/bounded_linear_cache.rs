@@ -45,7 +45,6 @@ use super::list_node::{Node, SharedNode};
 /// - `find(&mut self, key: &K) -> Option<V>`: Attempts to find a value matching the given key approximately. Promotes the found key to the head of the list.
 /// - `insert(&mut self, key: K, value: V)`: Inserts a key-value pair into the cache. Evicts the least recently used item if the cache is full.
 /// - `len(&self) -> usize`: Returns the current size of the cache.
-
 pub struct BoundedLinearCache<K, V> {
     max_capacity: usize,
     map: HashMap<K, SharedNode<K, V>>,
@@ -66,13 +65,13 @@ where
         let node: SharedNode<K, V> = self.map.get(matching).cloned()?;
         self.list.remove(node.clone());
         self.list.add_to_head(node.clone());
-        return Some(node.try_lock().unwrap().value.clone());
+        return Some(node.borrow().value.clone());
     }
 
     fn insert(&mut self, key: K, value: V) {
         if self.len() == self.max_capacity {
             if let Some(tail) = self.list.remove_tail() {
-                self.map.remove(&tail.try_lock().unwrap().key);
+                self.map.remove(&tail.borrow().key);
             }
         }
         let new_node = Node::new(key.clone(), value);
@@ -100,10 +99,20 @@ impl<K, V> BoundedLinearCache<K, V> {
 
 macro_rules! create_pythonized_interface {
     ($name: ident, $type: ident) => {
-        #[pyclass]
+        // unsendable == should hard-crash if Python tries to access it from
+        // two different Python threads.
+        //
+        // The implementation is very much thread-unsafe anyways (lots of mutations),
+        // so this is an OK behavior, we will detect it with a nice backtrace
+        // and without UB.
+        //
+        // Even in the case where we want the cache to be multithreaded, this would
+        // happen on the Rust side and will not be visible to the Python ML pipeline.
+        #[pyclass(unsendable)]
         pub struct $name {
-            inner: BoundedLinearCache::<$type, $type>,
+            inner: BoundedLinearCache<$type, $type>,
         }
+
         #[pymethods]
         impl $name {
             #[new]
@@ -113,7 +122,7 @@ macro_rules! create_pythonized_interface {
                 }
             }
 
-            fn find(&mut self, k : $type) -> Option<$type> {
+            fn find(&mut self, k: $type) -> Option<$type> {
                 self.inner.find(&k)
             }
 

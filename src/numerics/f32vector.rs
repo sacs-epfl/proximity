@@ -13,6 +13,10 @@ impl<'a> F32Vector<'a> {
         self.array.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.array.is_empty()
+    }
+
     /// # Usage
     /// Computes the **SQUARED** L2 distance between two vectors.
     /// This is cheaper to compute than the regular L2 distance.
