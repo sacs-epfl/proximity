@@ -1,4 +1,4 @@
-use api::I16Cache;
+use api::I16ToVectorCache;
 use pyo3::prelude::*;
 
 mod api;
@@ -6,6 +6,6 @@ mod api;
 /// A Python module implemented in Rust.
 #[pymodule]
 fn proximipy(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_class::<I16Cache>()?;
+    m.add_class::<I16ToVectorCache>()?;
     Ok(())
 }
