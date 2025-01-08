@@ -1,6 +1,10 @@
 use proximipy::caching::approximate_cache::ApproximateCache;
 use proximipy::caching::bounded::bounded_linear_cache::BoundedLinearCache;
-use pyo3::{pyclass, pymethods, types::{PyAnyMethods, PyList}, Bound, FromPyObject, IntoPyObject, PyErr};
+use pyo3::{
+    pyclass, pymethods,
+    types::{PyAnyMethods, PyList},
+    Bound, FromPyObject, IntoPyObject, PyErr,
+};
 
 macro_rules! create_pythonized_interface {
     ($name: ident, $keytype: ident, $valuetype : ident) => {
@@ -46,42 +50,41 @@ macro_rules! create_pythonized_interface {
     };
 }
 struct F32VecPy {
-    inner : Vec<f32>
+    inner: Vec<f32>,
 }
 
 /// Explain to Rust how to parse some random python object into an actual Rust vector
 /// This involves new allocations because Python cannot be trusted to keep this
 /// reference alive.
-/// 
+///
 /// This can fail if the random object in question is not a list of numbers,
-/// in which case it is automatically reported by raising a TypeError exception 
+/// in which case it is automatically reported by raising a TypeError exception
 /// in the Python code
-impl <'a> FromPyObject <'a> for F32VecPy {
+impl<'a> FromPyObject<'a> for F32VecPy {
     fn extract_bound(ob: &pyo3::Bound<'a, pyo3::PyAny>) -> pyo3::PyResult<Self> {
-        let list : Vec<f32> = ob.downcast::<PyList>()?.extract()?;
-        Ok(F32VecPy {inner : list})
+        let list: Vec<f32> = ob.downcast::<PyList>()?.extract()?;
+        Ok(F32VecPy { inner: list })
     }
 }
 
 // Cast back the list of floats to a Python list
-impl <'a> IntoPyObject<'a> for F32VecPy {
+impl<'a> IntoPyObject<'a> for F32VecPy {
     type Target = PyList;
     type Output = Bound<'a, PyList>;
     type Error = PyErr;
 
     fn into_pyobject(self, py: pyo3::Python<'a>) -> Result<Self::Output, Self::Error> {
         let internal = self.inner;
-        PyList::new(py, internal)    
+        PyList::new(py, internal)
     }
 }
 
 impl Clone for F32VecPy {
     fn clone(&self) -> Self {
         F32VecPy {
-            inner : self.inner.clone()
+            inner: self.inner.clone(),
         }
     }
 }
-
 
 create_pythonized_interface!(I16ToVectorCache, i16, F32VecPy);

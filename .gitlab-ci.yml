@@ -14,13 +14,16 @@ run-tests-debug:
 
 clippy:
   script:
-    - cd core
     - rustup component add clippy
+    - cd core
+    - cargo clippy
+    - cd ../bindings
     - cargo clippy
 
 format-check:
   script:
-    - cd core
     - rustup component add rustfmt
+    - cd core
     - cargo fmt -- --check
-
+    - cd ../bindings
+    - cargo fmt -- --check
