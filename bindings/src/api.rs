@@ -1,5 +1,8 @@
-use proximipy::caching::approximate_cache::ApproximateCache;
+use std::hash::{Hash, Hasher};
+
 use proximipy::caching::bounded::bounded_linear_cache::BoundedLinearCache;
+use proximipy::numerics::f32vector::F32Vector;
+use proximipy::{caching::approximate_cache::ApproximateCache, numerics::comp::ApproxComparable};
 use pyo3::{
     pyclass, pymethods,
     types::{PyAnyMethods, PyList},
@@ -49,26 +52,54 @@ macro_rules! create_pythonized_interface {
         }
     };
 }
-struct F32VecPy {
-    inner: Vec<f32>,
+
+struct VecPy<T> {
+    inner: Vec<T>,
+}
+
+impl PartialEq for VecPy<f32> {
+    fn eq(&self, other: &Self) -> bool {
+        self.inner.len() == other.inner.len()
+            && self
+                .inner
+                .iter()
+                .zip(&other.inner)
+                .all(|(a, b)| a.to_bits() == b.to_bits())
+    }
+}
+
+impl Eq for VecPy<f32> {}
+
+impl Hash for VecPy<f32> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for &val in &self.inner {
+            state.write_u32(val.to_bits());
+        }
+    }
 }
 
 /// Explain to Rust how to parse some random python object into an actual Rust vector
 /// This involves new allocations because Python cannot be trusted to keep this
 /// reference alive.
 ///
-/// This can fail if the random object in question is not a list of numbers,
+/// This can fail if the random object in question is not a list,
 /// in which case it is automatically reported by raising a TypeError exception
 /// in the Python code
-impl<'a> FromPyObject<'a> for F32VecPy {
+impl<'a, T> FromPyObject<'a> for VecPy<T>
+where
+    T: FromPyObject<'a>,
+{
     fn extract_bound(ob: &pyo3::Bound<'a, pyo3::PyAny>) -> pyo3::PyResult<Self> {
-        let list: Vec<f32> = ob.downcast::<PyList>()?.extract()?;
-        Ok(F32VecPy { inner: list })
+        let list: Vec<T> = ob.downcast::<PyList>()?.extract()?;
+        Ok(VecPy::<T> { inner: list })
     }
 }
 
-// Cast back the list of floats to a Python list
-impl<'a> IntoPyObject<'a> for F32VecPy {
+// Cast back the list of T's to a Python list
+impl<'a, T> IntoPyObject<'a> for VecPy<T>
+where
+    T: IntoPyObject<'a>,
+{
     type Target = PyList;
     type Output = Bound<'a, PyList>;
     type Error = PyErr;
@@ -79,12 +110,28 @@ impl<'a> IntoPyObject<'a> for F32VecPy {
     }
 }
 
-impl Clone for F32VecPy {
+impl<T> Clone for VecPy<T>
+where
+    T: Clone,
+{
     fn clone(&self) -> Self {
-        F32VecPy {
+        VecPy::<T> {
             inner: self.inner.clone(),
         }
     }
 }
 
-create_pythonized_interface!(I16ToVectorCache, i16, F32VecPy);
+impl ApproxComparable for VecPy<f32> {
+    fn roughly_matches(&self, instore: &Self, tolerance: f32) -> bool {
+        F32Vector::from(&self.inner as &[f32])
+            .roughly_matches(&F32Vector::from(&instore.inner as &[f32]), tolerance)
+    }
+}
+
+type F32VecPy = VecPy<f32>;
+type U32VecPy = VecPy<u32>;
+type UsizeVecPy = VecPy<usize>;
+
+create_pythonized_interface!(I16ToF32VectorCache, i16, F32VecPy);
+create_pythonized_interface!(FVecToU32VectorCache, F32VecPy, U32VecPy);
+create_pythonized_interface!(FVecToUsizeVectorCache, F32VecPy, UsizeVecPy);
