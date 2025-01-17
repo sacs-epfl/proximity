@@ -1,23 +1,22 @@
-image: rustlang/rust:nightly
+image: randlflep/rust-ci
 
 run-tests-release:
   needs: []
   script:
     - cd core
-    - rustc --version && cargo --version 
-    - cargo test --release --verbose 
+    - rustc --version && cargo --version
+    - cargo test --release --verbose
 
 run-tests-debug:
   needs: []
   script:
     - cd core
-    - rustc --version && cargo --version 
-    - cargo test --verbose 
+    - rustc --version && cargo --version
+    - cargo test --verbose
 
 clippy:
   needs: []
   script:
-    - rustup component add clippy
     - cd core
     - cargo clippy
     - cd ../bindings
@@ -26,7 +25,6 @@ clippy:
 format-check:
   needs: []
   script:
-    - rustup component add rustfmt
     - cd core
     - cargo fmt -- --check
     - cd ../bindings
