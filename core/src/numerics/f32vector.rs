@@ -19,10 +19,12 @@ impl<'a> F32Vector<'a> {
 
     /// # Usage
     /// Computes the **SQUARED** L2 distance between two vectors.
-    /// This is cheaper to compute than the regular L2 distance.
     /// This is typically useful when comparing two distances :
     ///
     /// dist(u,v) < dist(w, x) ⇔ dist(u,v) ** 2 < dist(w,x) ** 2
+    ///
+    /// We are usually interested in the left side of the equivalence,
+    /// but the right side is cheaper to compute.
     ///
     /// # Panics
     ///

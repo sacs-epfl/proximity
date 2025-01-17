@@ -1,6 +1,5 @@
 use super::f32vector::F32Vector;
 
-// rust Ord trait has some issues
 pub trait ApproxComparable {
     fn roughly_matches(&self, instore: &Self, tolerance: f32) -> bool;
 }
@@ -12,8 +11,9 @@ impl ApproxComparable for f32 {
 }
 
 impl<'a> ApproxComparable for F32Vector<'a> {
-    fn roughly_matches(&self, target: &F32Vector<'a>, square_tolerance: f32) -> bool {
-        self.l2_dist_squared(target) < square_tolerance
+    #[inline]
+    fn roughly_matches(&self, target: &F32Vector<'a>, tolerance: f32) -> bool {
+        self.l2_dist_squared(target) < tolerance * tolerance
     }
 }
 
