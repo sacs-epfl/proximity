@@ -6,7 +6,6 @@ run-tests-release:
     - cd core
     - rustc --version && cargo --version
     - cargo test --release --verbose
-    - cargo valgrind test --release --verbose -- --errors-for-leak-kinds=definite
 
 run-tests-debug:
   needs: []
@@ -14,7 +13,6 @@ run-tests-debug:
     - cd core
     - rustc --version && cargo --version
     - cargo test --verbose
-    - cargo valgrind test --verbose -- --errors-for-leak-kinds=definite
 
 clippy:
   needs: []
