@@ -10,7 +10,7 @@ use pyo3::{
 };
 
 macro_rules! create_pythonized_interface {
-    ($name: ident, $keytype: ident, $valuetype : ident) => {
+    ($name: ident, $keytype: ident, $valuetype : ident, $best_match : expr) => {
         // unsendable == should hard-crash if Python tries to access it from
         // two different Python threads.
         //
@@ -22,7 +22,7 @@ macro_rules! create_pythonized_interface {
         // happen on the Rust side and will not be visible to the Python ML pipeline.
         #[pyclass(unsendable)]
         pub struct $name {
-            inner: BoundedLinearCache<$keytype, $valuetype>,
+            inner: BoundedLinearCache<$keytype, $valuetype, $best_match>,
         }
 
         #[pymethods]
@@ -126,12 +126,13 @@ impl ApproxComparable for VecPy<f32> {
         F32Vector::from(&self.inner as &[f32])
             .roughly_matches(&F32Vector::from(&instore.inner as &[f32]), tolerance)
     }
+    fn fuzziness(&self, instore: &Self) -> f32 {
+        F32Vector::from(&self.inner as &[f32]).fuzziness(&F32Vector::from(&instore.inner as &[f32]))
+    }
 }
 
 type F32VecPy = VecPy<f32>;
-type U32VecPy = VecPy<u32>;
 type UsizeVecPy = VecPy<usize>;
 
-create_pythonized_interface!(I16ToF32VectorCache, i16, F32VecPy);
-create_pythonized_interface!(FVecToU32VectorCache, F32VecPy, U32VecPy);
-create_pythonized_interface!(FVecToUsizeVectorCache, F32VecPy, UsizeVecPy);
+create_pythonized_interface!(FVecToUsizeVectorAny, F32VecPy, UsizeVecPy, false);
+create_pythonized_interface!(FVecToUsizeVectorBest, F32VecPy, UsizeVecPy, true);
