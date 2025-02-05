@@ -113,8 +113,7 @@ mod tests {
     #[test]
     fn test_lru_cache_basic_operations() {
         fn test_lru_cache_basic_operations_best_match<const BEST_MATCH: bool>() {
-            let mut cache: LRUCache<i16, i16, BEST_MATCH> =
-                LRUCache::new(2, TEST_TOLERANCE);
+            let mut cache: LRUCache<i16, i16, BEST_MATCH> = LRUCache::new(2, TEST_TOLERANCE);
             cache.insert(1, 1); // Cache is {1=1}
             cache.insert(2, 2); // Cache is {1=1, 2=2}
             assert_eq!(cache.find(&1), Some(1)); // Returns 1, Cache is {2=2, 1=1}
@@ -132,8 +131,7 @@ mod tests {
     #[test]
     fn test_lru_cache_eviction_order() {
         fn test_lru_cache_eviction_order_best_match<const BEST_MATCH: bool>() {
-            let mut cache: LRUCache<i16, i16, BEST_MATCH> =
-                LRUCache::new(3, TEST_TOLERANCE);
+            let mut cache: LRUCache<i16, i16, BEST_MATCH> = LRUCache::new(3, TEST_TOLERANCE);
             cache.insert(1, 1); // Cache is {1=1}
             cache.insert(2, 2); // Cache is {1=1, 2=2}
             cache.insert(3, 3); // Cache is {1=1, 2=2, 3=3}
@@ -152,8 +150,7 @@ mod tests {
     #[test]
     fn test_lru_cache_overwrite() {
         fn test_lru_cache_overwrite_best_match<const BEST_MATCH: bool>() {
-            let mut cache: LRUCache<i16, i16, BEST_MATCH> =
-                LRUCache::new(2, TEST_TOLERANCE);
+            let mut cache: LRUCache<i16, i16, BEST_MATCH> = LRUCache::new(2, TEST_TOLERANCE);
             cache.insert(1, 1); // Cache is {1=1}
             cache.insert(2, 2); // Cache is {1=1, 2=2}
             cache.insert(1, 10); // Overwrites key 1, Cache is {2=2, 1=10}
@@ -169,8 +166,7 @@ mod tests {
     #[test]
     fn test_lru_cache_capacity_one() {
         fn test_lru_cache_capacity_one_best_match<const BEST_MATCH: bool>() {
-            let mut cache: LRUCache<i16, i16, BEST_MATCH> =
-                LRUCache::new(1, TEST_TOLERANCE);
+            let mut cache: LRUCache<i16, i16, BEST_MATCH> = LRUCache::new(1, TEST_TOLERANCE);
             cache.insert(1, 1); // Cache is {1=1}
             assert_eq!(cache.find(&1), Some(1)); // Returns 1
             cache.insert(2, 2); // Evicts key 1, Cache is {2=2}
