@@ -1,6 +1,6 @@
 use std::hash::{Hash, Hasher};
 
-use proximipy::caching::bounded::bounded_linear_cache::BoundedLinearCache;
+use proximipy::caching::bounded::lru::lru_cache::LRUCache;
 use proximipy::numerics::f32vector::F32Vector;
 use proximipy::{caching::approximate_cache::ApproximateCache, numerics::comp::ApproxComparable};
 use pyo3::{
@@ -22,7 +22,7 @@ macro_rules! create_pythonized_interface {
         // happen on the Rust side and will not be visible to the Python ML pipeline.
         #[pyclass(unsendable)]
         pub struct $name {
-            inner: BoundedLinearCache<$keytype, $valuetype, $best_match>,
+            inner: LRUCache<$keytype, $valuetype, $best_match>,
         }
 
         #[pymethods]
@@ -30,7 +30,7 @@ macro_rules! create_pythonized_interface {
             #[new]
             pub fn new(max_capacity: usize, tolerance: f32) -> Self {
                 Self {
-                    inner: BoundedLinearCache::new(max_capacity, tolerance),
+                    inner: LRUCache::new(max_capacity, tolerance),
                 }
             }
 

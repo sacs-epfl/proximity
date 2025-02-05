@@ -4,7 +4,7 @@
 use std::path::Path;
 
 use caching::approximate_cache::ApproximateCache;
-use caching::bounded::bounded_linear_cache::BoundedLinearCache;
+use caching::bounded::lru::lru_cache::LRUCache;
 use fs::file_manager;
 use numerics::f32vector::F32Vector;
 use std::fs::File;
@@ -27,7 +27,7 @@ fn main() {
     let vecs_f: Vec<f32> = vecs.into_iter().map(f32::from).collect();
     println!("{:?}", vecs_f.chunks_exact(128).next().unwrap());
 
-    let mut ulc = BoundedLinearCache::<F32Vector, usize, true>::new(10000, 15_000.0);
+    let mut ulc = LRUCache::<F32Vector, usize, true>::new(10000, 15_000.0);
     let mut count: u32 = 0;
     let mut scanned: usize = 0;
 

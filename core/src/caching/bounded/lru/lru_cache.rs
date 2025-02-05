@@ -8,9 +8,7 @@ use crate::caching::approximate_cache::ApproximateCache;
 use super::linked_list::DoublyLinkedList;
 use super::list_node::{Node, SharedNode};
 
-/// `BoundedLinearCache` is a bounded cache with approximate key matching support.
-///
-/// The cache enforces a maximum capacity, and when the capacity is exceeded, the least recently used (LRU) element is evicted.
+/// `LRUCache` is a bounded cache with approximate key matching support and LRU eviction.
 ///
 /// # Approximate Key Matching
 /// Keys must implement the `ApproxComparable` trait, which allows approximate equality comparisons based on the provided `tolerance`.
@@ -18,10 +16,10 @@ use super::list_node::{Node, SharedNode};
 ///
 /// # Example Usage
 /// ```
-/// use proximipy::caching::bounded::bounded_linear_cache::BoundedLinearCache;
+/// use proximipy::caching::bounded::lru::lru_cache::LRUCache;
 /// use proximipy::caching::approximate_cache::ApproximateCache;
 ///
-/// let mut cache = BoundedLinearCache::<_,_,true>::new(3, 2.0);
+/// let mut cache = LRUCache::<_,_,true>::new(3, 2.0);
 ///
 /// cache.insert(10 as i16, "Value 1");
 /// cache.insert(20, "Value 2");
@@ -43,14 +41,14 @@ use super::list_node::{Node, SharedNode};
 /// - `find(&mut self, key: &K) -> Option<V>`: Attempts to find a value matching the given key approximately. Promotes the found key to the head of the list.
 /// - `insert(&mut self, key: K, value: V)`: Inserts a key-value pair into the cache. Evicts the least recently used item if the cache is full.
 /// - `len(&self) -> usize`: Returns the current size of the cache.
-pub struct BoundedLinearCache<K, V, const BEST_MATCH: bool> {
+pub struct LRUCache<K, V, const BEST_MATCH: bool> {
     max_capacity: usize,
     map: HashMap<K, SharedNode<K, V>>,
     list: DoublyLinkedList<K, V>,
     tolerance: f32,
 }
 
-impl<K, V, const BEST_MATCH: bool> ApproximateCache<K, V> for BoundedLinearCache<K, V, BEST_MATCH>
+impl<K, V, const BEST_MATCH: bool> ApproximateCache<K, V> for LRUCache<K, V, BEST_MATCH>
 where
     K: ApproxComparable + Eq + Hash + Clone,
     V: Clone,
@@ -94,7 +92,7 @@ where
     }
 }
 
-impl<K, V, const BESTMATCH: bool> BoundedLinearCache<K, V, BESTMATCH> {
+impl<K, V, const BESTMATCH: bool> LRUCache<K, V, BESTMATCH> {
     pub fn new(max_capacity: usize, tolerance: f32) -> Self {
         assert!(max_capacity > 0);
         assert!(tolerance > 0.0);
@@ -115,8 +113,8 @@ mod tests {
     #[test]
     fn test_lru_cache_basic_operations() {
         fn test_lru_cache_basic_operations_best_match<const BEST_MATCH: bool>() {
-            let mut cache: BoundedLinearCache<i16, i16, BEST_MATCH> =
-                BoundedLinearCache::new(2, TEST_TOLERANCE);
+            let mut cache: LRUCache<i16, i16, BEST_MATCH> =
+                LRUCache::new(2, TEST_TOLERANCE);
             cache.insert(1, 1); // Cache is {1=1}
             cache.insert(2, 2); // Cache is {1=1, 2=2}
             assert_eq!(cache.find(&1), Some(1)); // Returns 1, Cache is {2=2, 1=1}
@@ -134,8 +132,8 @@ mod tests {
     #[test]
     fn test_lru_cache_eviction_order() {
         fn test_lru_cache_eviction_order_best_match<const BEST_MATCH: bool>() {
-            let mut cache: BoundedLinearCache<i16, i16, BEST_MATCH> =
-                BoundedLinearCache::new(3, TEST_TOLERANCE);
+            let mut cache: LRUCache<i16, i16, BEST_MATCH> =
+                LRUCache::new(3, TEST_TOLERANCE);
             cache.insert(1, 1); // Cache is {1=1}
             cache.insert(2, 2); // Cache is {1=1, 2=2}
             cache.insert(3, 3); // Cache is {1=1, 2=2, 3=3}
@@ -154,8 +152,8 @@ mod tests {
     #[test]
     fn test_lru_cache_overwrite() {
         fn test_lru_cache_overwrite_best_match<const BEST_MATCH: bool>() {
-            let mut cache: BoundedLinearCache<i16, i16, BEST_MATCH> =
-                BoundedLinearCache::new(2, TEST_TOLERANCE);
+            let mut cache: LRUCache<i16, i16, BEST_MATCH> =
+                LRUCache::new(2, TEST_TOLERANCE);
             cache.insert(1, 1); // Cache is {1=1}
             cache.insert(2, 2); // Cache is {1=1, 2=2}
             cache.insert(1, 10); // Overwrites key 1, Cache is {2=2, 1=10}
@@ -171,8 +169,8 @@ mod tests {
     #[test]
     fn test_lru_cache_capacity_one() {
         fn test_lru_cache_capacity_one_best_match<const BEST_MATCH: bool>() {
-            let mut cache: BoundedLinearCache<i16, i16, BEST_MATCH> =
-                BoundedLinearCache::new(1, TEST_TOLERANCE);
+            let mut cache: LRUCache<i16, i16, BEST_MATCH> =
+                LRUCache::new(1, TEST_TOLERANCE);
             cache.insert(1, 1); // Cache is {1=1}
             assert_eq!(cache.find(&1), Some(1)); // Returns 1
             cache.insert(2, 2); // Evicts key 1, Cache is {2=2}
@@ -186,6 +184,6 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_lru_cache_empty() {
-        let _cache: BoundedLinearCache<i16, i16, true> = BoundedLinearCache::new(0, TEST_TOLERANCE);
+        let _cache: LRUCache<i16, i16, true> = LRUCache::new(0, TEST_TOLERANCE);
     }
 }
