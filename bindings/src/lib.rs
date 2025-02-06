@@ -1,4 +1,4 @@
-use api::{FVecToUsizeVectorAny, FVecToUsizeVectorBest};
+use api::{FifoCache, LRUCache};
 use pyo3::prelude::*;
 
 mod api;
@@ -6,7 +6,7 @@ mod api;
 /// A Python module implemented in Rust.
 #[pymodule]
 fn proximipy(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_class::<FVecToUsizeVectorBest>()?;
-    m.add_class::<FVecToUsizeVectorAny>()?;
+    m.add_class::<LRUCache>()?;
+    m.add_class::<FifoCache>()?;
     Ok(())
 }

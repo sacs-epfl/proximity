@@ -19,7 +19,7 @@ use super::list_node::{Node, SharedNode};
 /// use proximipy::caching::bounded::lru::lru_cache::LRUCache;
 /// use proximipy::caching::approximate_cache::ApproximateCache;
 ///
-/// let mut cache = LRUCache::<_,_,true>::new(3, 2.0);
+/// let mut cache = LRUCache::new(3, 2.0);
 ///
 /// cache.insert(10 as i16, "Value 1");
 /// cache.insert(20, "Value 2");
@@ -41,35 +41,30 @@ use super::list_node::{Node, SharedNode};
 /// - `find(&mut self, key: &K) -> Option<V>`: Attempts to find a value matching the given key approximately. Promotes the found key to the head of the list.
 /// - `insert(&mut self, key: K, value: V)`: Inserts a key-value pair into the cache. Evicts the least recently used item if the cache is full.
 /// - `len(&self) -> usize`: Returns the current size of the cache.
-pub struct LRUCache<K, V, const BEST_MATCH: bool> {
+pub struct LRUCache<K, V> {
     max_capacity: usize,
     map: HashMap<K, SharedNode<K, V>>,
     list: DoublyLinkedList<K, V>,
     tolerance: f32,
 }
 
-impl<K, V, const BEST_MATCH: bool> ApproximateCache<K, V> for LRUCache<K, V, BEST_MATCH>
+impl<K, V> ApproximateCache<K, V> for LRUCache<K, V>
 where
     K: ApproxComparable + Eq + Hash + Clone,
     V: Clone,
 {
     fn find(&mut self, key: &K) -> Option<V> {
-        let matching = if BEST_MATCH {
-            self.map
-                .keys()
-                .find(|&k| key.roughly_matches(k, self.tolerance))?
-        } else {
-            let potential_candi = self
-                .map
-                .keys()
-                .min_by(|&x, &y| key.fuzziness(x).partial_cmp(&key.fuzziness(y)).unwrap())?;
+        let potential_candi = self
+            .map
+            .keys()
+            .min_by(|&x, &y| key.fuzziness(x).partial_cmp(&key.fuzziness(y)).unwrap())?;
 
-            if potential_candi.roughly_matches(key, self.tolerance) {
-                potential_candi
-            } else {
-                return None;
-            }
-        };
+        let matching = if potential_candi.roughly_matches(key, self.tolerance) {
+            Some(potential_candi)
+        } else {
+            None
+        }?;
+
         let node: SharedNode<K, V> = self.map.get(matching).cloned()?;
         self.list.remove(node.clone());
         self.list.add_to_head(node.clone());
@@ -92,7 +87,7 @@ where
     }
 }
 
-impl<K, V, const BESTMATCH: bool> LRUCache<K, V, BESTMATCH> {
+impl<K, V> LRUCache<K, V> {
     pub fn new(max_capacity: usize, tolerance: f32) -> Self {
         assert!(max_capacity > 0);
         assert!(tolerance > 0.0);
@@ -112,74 +107,57 @@ mod tests {
     const TEST_TOLERANCE: f32 = 1e-8;
     #[test]
     fn test_lru_cache_basic_operations() {
-        fn test_lru_cache_basic_operations_best_match<const BEST_MATCH: bool>() {
-            let mut cache: LRUCache<i16, i16, BEST_MATCH> = LRUCache::new(2, TEST_TOLERANCE);
-            cache.insert(1, 1); // Cache is {1=1}
-            cache.insert(2, 2); // Cache is {1=1, 2=2}
-            assert_eq!(cache.find(&1), Some(1)); // Returns 1, Cache is {2=2, 1=1}
-            cache.insert(3, 3); // Evicts key 2, Cache is {1=1, 3=3}
-            assert_eq!(cache.find(&2), None); // Key 2 not found
-            cache.insert(4, 4); // Evicts key 1, Cache is {3=3, 4=4}
-            assert_eq!(cache.find(&1), None); // Key 1 not found
-            assert_eq!(cache.find(&3), Some(3)); // Returns 3
-            assert_eq!(cache.find(&4), Some(4)); // Returns 4
-        }
-        test_lru_cache_basic_operations_best_match::<true>();
-        test_lru_cache_basic_operations_best_match::<false>();
+        let mut cache = LRUCache::new(2, TEST_TOLERANCE);
+        cache.insert(1, 1); // Cache is {1=1}
+        cache.insert(2, 2); // Cache is {1=1, 2=2}
+        assert_eq!(cache.find(&1), Some(1)); // Returns 1, Cache is {2=2, 1=1}
+        cache.insert(3, 3); // Evicts key 2, Cache is {1=1, 3=3}
+        assert_eq!(cache.find(&2), None); // Key 2 not found
+        cache.insert(4, 4); // Evicts key 1, Cache is {3=3, 4=4}
+        assert_eq!(cache.find(&1), None); // Key 1 not found
+        assert_eq!(cache.find(&3), Some(3)); // Returns 3
+        assert_eq!(cache.find(&4), Some(4)); // Returns 4
     }
 
     #[test]
     fn test_lru_cache_eviction_order() {
-        fn test_lru_cache_eviction_order_best_match<const BEST_MATCH: bool>() {
-            let mut cache: LRUCache<i16, i16, BEST_MATCH> = LRUCache::new(3, TEST_TOLERANCE);
-            cache.insert(1, 1); // Cache is {1=1}
-            cache.insert(2, 2); // Cache is {1=1, 2=2}
-            cache.insert(3, 3); // Cache is {1=1, 2=2, 3=3}
-            cache.find(&1); // Access key 1, Cache is {2=2, 3=3, 1=1}
-            cache.insert(4, 4); // Evicts key 2, Cache is {3=3, 1=1, 4=4}
-            assert_eq!(cache.find(&2), None); // Key 2 not found
-            assert_eq!(cache.find(&3), Some(3)); // Returns 3
-            assert_eq!(cache.find(&4), Some(4)); // Returns 4
-            assert_eq!(cache.find(&1), Some(1)); // Returns 1
-        }
-
-        test_lru_cache_eviction_order_best_match::<true>();
-        test_lru_cache_eviction_order_best_match::<false>();
+        let mut cache = LRUCache::new(3, TEST_TOLERANCE);
+        cache.insert(1, 1); // Cache is {1=1}
+        cache.insert(2, 2); // Cache is {1=1, 2=2}
+        cache.insert(3, 3); // Cache is {1=1, 2=2, 3=3}
+        cache.find(&1); // Access key 1, Cache is {2=2, 3=3, 1=1}
+        cache.insert(4, 4); // Evicts key 2, Cache is {3=3, 1=1, 4=4}
+        assert_eq!(cache.find(&2), None); // Key 2 not found
+        assert_eq!(cache.find(&3), Some(3)); // Returns 3
+        assert_eq!(cache.find(&4), Some(4)); // Returns 4
+        assert_eq!(cache.find(&1), Some(1)); // Returns 1
     }
 
     #[test]
     fn test_lru_cache_overwrite() {
-        fn test_lru_cache_overwrite_best_match<const BEST_MATCH: bool>() {
-            let mut cache: LRUCache<i16, i16, BEST_MATCH> = LRUCache::new(2, TEST_TOLERANCE);
-            cache.insert(1, 1); // Cache is {1=1}
-            cache.insert(2, 2); // Cache is {1=1, 2=2}
-            cache.insert(1, 10); // Overwrites key 1, Cache is {2=2, 1=10}
-            assert_eq!(cache.find(&1), Some(10)); // Returns 10
-            cache.insert(3, 3); // Evicts key 2, Cache is {1=10, 3=3}
-            assert_eq!(cache.find(&2), None); // Key 2 not found
-            assert_eq!(cache.find(&3), Some(3)); // Returns 3
-        }
-        test_lru_cache_overwrite_best_match::<true>();
-        test_lru_cache_overwrite_best_match::<false>();
+        let mut cache = LRUCache::new(2, TEST_TOLERANCE);
+        cache.insert(1, 1); // Cache is {1=1}
+        cache.insert(2, 2); // Cache is {1=1, 2=2}
+        cache.insert(1, 10); // Overwrites key 1, Cache is {2=2, 1=10}
+        assert_eq!(cache.find(&1), Some(10)); // Returns 10
+        cache.insert(3, 3); // Evicts key 2, Cache is {1=10, 3=3}
+        assert_eq!(cache.find(&2), None); // Key 2 not found
+        assert_eq!(cache.find(&3), Some(3)); // Returns 3
     }
 
     #[test]
     fn test_lru_cache_capacity_one() {
-        fn test_lru_cache_capacity_one_best_match<const BEST_MATCH: bool>() {
-            let mut cache: LRUCache<i16, i16, BEST_MATCH> = LRUCache::new(1, TEST_TOLERANCE);
-            cache.insert(1, 1); // Cache is {1=1}
-            assert_eq!(cache.find(&1), Some(1)); // Returns 1
-            cache.insert(2, 2); // Evicts key 1, Cache is {2=2}
-            assert_eq!(cache.find(&1), None); // Key 1 not found
-            assert_eq!(cache.find(&2), Some(2)); // Returns 2
-        }
-        test_lru_cache_capacity_one_best_match::<true>();
-        test_lru_cache_capacity_one_best_match::<false>();
+        let mut cache = LRUCache::new(1, TEST_TOLERANCE);
+        cache.insert(1, 1); // Cache is {1=1}
+        assert_eq!(cache.find(&1), Some(1)); // Returns 1
+        cache.insert(2, 2); // Evicts key 1, Cache is {2=2}
+        assert_eq!(cache.find(&1), None); // Key 1 not found
+        assert_eq!(cache.find(&2), Some(2)); // Returns 2
     }
 
     #[test]
     #[should_panic]
     fn test_lru_cache_empty() {
-        let _cache: LRUCache<i16, i16, true> = LRUCache::new(0, TEST_TOLERANCE);
+        let _cache: LRUCache<i16, i16> = LRUCache::new(0, TEST_TOLERANCE);
     }
 }
