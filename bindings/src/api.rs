@@ -135,6 +135,7 @@ impl ApproxComparable for VecPy<f32> {
 
 type F32VecPy = VecPy<f32>;
 type UsizeVecPy = VecPy<usize>;
+type UsizeWithRankingVecPy = (UsizeVecPy, F32VecPy);
 
-create_pythonized_interface!(LruInternal, LRUCache, F32VecPy, UsizeVecPy);
-create_pythonized_interface!(FifoInternal, FifoCache, F32VecPy, UsizeVecPy);
+create_pythonized_interface!(LruInternal, LRUCache, F32VecPy, UsizeWithRankingVecPy);
+create_pythonized_interface!(FifoInternal, FifoCache, F32VecPy, UsizeWithRankingVecPy);
