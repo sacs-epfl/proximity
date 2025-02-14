@@ -72,7 +72,7 @@ where
     }
 
     fn insert(&mut self, key: K, value: V) {
-        if self.len() == self.max_capacity {
+        if self.len() >= self.max_capacity {
             if let Some(tail) = self.list.remove_tail() {
                 self.map.remove(&tail.borrow().key);
             }
@@ -93,7 +93,7 @@ impl<K, V> LRUCache<K, V> {
         assert!(tolerance > 0.0);
         Self {
             max_capacity,
-            map: HashMap::new(),
+            map: HashMap::with_capacity(max_capacity),
             list: DoublyLinkedList::new(),
             tolerance,
         }

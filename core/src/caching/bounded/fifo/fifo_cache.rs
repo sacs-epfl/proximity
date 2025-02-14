@@ -44,7 +44,7 @@ impl<K, V> FifoCache<K, V> {
         assert!(tolerance > 0.0);
         Self {
             max_capacity,
-            items: VecDeque::new(),
+            items: VecDeque::with_capacity(max_capacity),
             tolerance,
         }
     }
