@@ -40,6 +40,10 @@ macro_rules! create_pythonized_interface {
                 self.inner.find(&k)
             }
 
+            fn batch_find(&mut self, ks : Vec<$keytype>) -> Vec<Option<$valuetype>> {
+                ks.into_iter().map(|k| self.find(k)).collect()
+            }
+
             fn insert(&mut self, key: $keytype, value: $valuetype) {
                 self.inner.insert(key, value)
             }
