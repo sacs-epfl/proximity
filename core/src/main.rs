@@ -4,7 +4,7 @@
 use std::path::Path;
 
 use caching::approximate_cache::ApproximateCache;
-use caching::bounded::lru::lru_cache::LRUCache;
+use caching::lru::lru_cache::LRUCache;
 use fs::file_manager;
 use numerics::f32vector::F32Vector;
 use std::fs::File;
