@@ -1,10 +1,12 @@
 use std::hash::{Hash, Hasher};
 
+use proximipy::caching::approximate_cache::ApproximateCache;
 use proximipy::caching::bounded::fifo::fifo_cache::FifoCache as FifoInternal;
 use proximipy::caching::bounded::lru::lru_cache::LRUCache as LruInternal;
-
+use proximipy::numerics::comp::ApproxComparable;
 use proximipy::numerics::f32vector::F32Vector;
-use proximipy::{caching::approximate_cache::ApproximateCache, numerics::comp::ApproxComparable};
+
+use pyo3::PyObject;
 use pyo3::{
     pyclass, pymethods,
     types::{PyAnyMethods, PyList},
@@ -12,7 +14,7 @@ use pyo3::{
 };
 
 macro_rules! create_pythonized_interface {
-    ($internal : ident, $name: ident, $keytype: ident, $valuetype : ident) => {
+    ($internal : ident, $name: ident, $keytype: ident) => {
         // unsendable == should hard-crash if Python tries to access it from
         // two different Python threads.
         //
@@ -24,36 +26,33 @@ macro_rules! create_pythonized_interface {
         // happen on the Rust side and will not be visible to the Python ML pipeline.
         #[pyclass(unsendable)]
         pub struct $name {
-            inner: $internal<$keytype, $valuetype>,
+            inner: $internal<$keytype, PyObject>,
         }
 
         #[pymethods]
         impl $name {
             #[new]
-            pub fn new(max_capacity: usize, tolerance: f32) -> Self {
+            pub fn new(max_capacity: usize) -> Self {
                 Self {
-                    inner: $internal::new(max_capacity, tolerance),
+                    inner: $internal::new(max_capacity),
                 }
             }
 
-            fn find(&mut self, k: $keytype) -> Option<$valuetype> {
+            fn find(&mut self, k: $keytype) -> Option<PyObject> {
                 self.inner.find(&k)
             }
 
-            fn batch_find(&mut self, ks: Vec<$keytype>) -> Vec<Option<$valuetype>> {
+            fn batch_find(&mut self, ks: Vec<$keytype>) -> Vec<Option<PyObject>> {
+                // more efficient than a python for loop
                 ks.into_iter().map(|k| self.find(k)).collect()
             }
 
-            fn insert(&mut self, key: $keytype, value: $valuetype) {
-                self.inner.insert(key, value)
-            }
-
-            fn len(&self) -> usize {
-                self.inner.len()
+            fn insert(&mut self, key: $keytype, value: PyObject, tolerance: f32) {
+                self.inner.insert(key, value, tolerance)
             }
 
             fn __len__(&self) -> usize {
-                self.len()
+                self.inner.len()
             }
         }
     };
@@ -138,8 +137,6 @@ impl ApproxComparable for VecPy<f32> {
 }
 
 type F32VecPy = VecPy<f32>;
-type UsizeVecPy = VecPy<usize>;
-type UsizeWithRankingVecPy = (UsizeVecPy, F32VecPy);
 
-create_pythonized_interface!(LruInternal, LRUCache, F32VecPy, UsizeWithRankingVecPy);
-create_pythonized_interface!(FifoInternal, FifoCache, F32VecPy, UsizeWithRankingVecPy);
+create_pythonized_interface!(LruInternal, LRUCache, F32VecPy);
+create_pythonized_interface!(FifoInternal, FifoCache, F32VecPy);

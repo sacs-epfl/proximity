@@ -9,5 +9,5 @@ name = "proximipy"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = "0.23.3"
+pyo3 = {version = "0.23.3", features = ["py-clone"]}
 proximity-cache = { path = "../core"}
