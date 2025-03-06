@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::caching::bounded::lru::list_node::SharedNode;
+use crate::caching::lru::list_node::SharedNode;
 
 pub struct DoublyLinkedList<K, V> {
     head: Option<SharedNode<K, V>>,
@@ -60,7 +60,7 @@ impl<K, V> DoublyLinkedList<K, V> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::caching::bounded::lru::list_node::Node;
+    use crate::caching::lru::list_node::Node;
 
     #[test]
     fn test_add_to_head() {

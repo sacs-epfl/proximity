@@ -1,2 +1,3 @@
 pub mod approximate_cache;
-pub mod bounded;
+pub mod fifo;
+pub mod lru;

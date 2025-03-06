@@ -17,7 +17,7 @@ use super::map_entry::MapEntry;
 ///
 /// # Example Usage
 /// ```
-/// use proximipy::caching::bounded::lru::lru_cache::LRUCache;
+/// use proximipy::caching::lru::lru_cache::LRUCache;
 /// use proximipy::caching::approximate_cache::ApproximateCache;
 ///
 /// let mut cache = LRUCache::new(3);
