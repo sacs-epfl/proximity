@@ -27,7 +27,7 @@ fn main() {
     let vecs_f: Vec<f32> = vecs.into_iter().map(f32::from).collect();
     println!("{:?}", vecs_f.chunks_exact(128).next().unwrap());
 
-    let mut ulc = LRUCache::<F32Vector, usize>::new(10000, 15_000.0);
+    let mut ulc = LRUCache::<F32Vector, usize>::new(10000);
     let mut count: u32 = 0;
     let mut scanned: usize = 0;
 
@@ -40,7 +40,7 @@ fn main() {
             count += 1;
         } else {
             scanned += ulc.len();
-            ulc.insert(f32v, index);
+            ulc.insert(f32v, index, 15_000.0);
         }
 
         writeln!(file, "{} {}", index, find.unwrap_or(50001)).unwrap();

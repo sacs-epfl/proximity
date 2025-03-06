@@ -7,6 +7,7 @@ use crate::caching::approximate_cache::ApproximateCache;
 
 use super::linked_list::DoublyLinkedList;
 use super::list_node::{Node, SharedNode};
+use super::map_entry::MapEntry;
 
 /// `LRUCache` is a bounded cache with approximate key matching support and LRU eviction.
 ///
@@ -19,16 +20,17 @@ use super::list_node::{Node, SharedNode};
 /// use proximipy::caching::bounded::lru::lru_cache::LRUCache;
 /// use proximipy::caching::approximate_cache::ApproximateCache;
 ///
-/// let mut cache = LRUCache::new(3, 2.0);
+/// let mut cache = LRUCache::new(3);
+/// const TEST_TOL: f32 = 2.0;
 ///
-/// cache.insert(10 as i16, "Value 1");
-/// cache.insert(20, "Value 2");
-/// cache.insert(30, "Value 3");
+/// cache.insert(10 as i16, "Value 1", TEST_TOL);
+/// cache.insert(20, "Value 2", TEST_TOL);
+/// cache.insert(30, "Value 3", TEST_TOL);
 ///
 /// assert_eq!(cache.find(&11), Some("Value 1"));
 /// assert_eq!(cache.len(), 3);
 ///
-/// cache.insert(40, "Value 4"); // Evicts the least recently used (Key(20))
+/// cache.insert(40, "Value 4", TEST_TOL); // Evicts the least recently used (Key(20))
 /// assert!(cache.find(&20).is_none());
 /// ```
 ///
@@ -43,9 +45,8 @@ use super::list_node::{Node, SharedNode};
 /// - `len(&self) -> usize`: Returns the current size of the cache.
 pub struct LRUCache<K, V> {
     max_capacity: usize,
-    map: HashMap<K, SharedNode<K, V>>,
-    list: DoublyLinkedList<K, V>,
-    tolerance: f32,
+    map: HashMap<MapEntry<K>, SharedNode<MapEntry<K>, V>>,
+    list: DoublyLinkedList<MapEntry<K>, V>,
 }
 
 impl<K, V> ApproximateCache<K, V> for LRUCache<K, V>
@@ -53,33 +54,37 @@ where
     K: ApproxComparable + Eq + Hash + Clone,
     V: Clone,
 {
-    fn find(&mut self, key: &K) -> Option<V> {
-        let potential_candi = self
+    fn find(&mut self, target: &K) -> Option<V> {
+        let candidate = self
             .map
             .keys()
-            .min_by(|&x, &y| key.fuzziness(x).partial_cmp(&key.fuzziness(y)).unwrap())?;
+            .filter(|&entry| entry.key.roughly_matches(target, entry.tolerance))
+            .min_by(|&xentry, &yentry| {
+                target
+                    .fuzziness(&xentry.key)
+                    .partial_cmp(&target.fuzziness(&yentry.key))
+                    .unwrap()
+            })?;
 
-        let matching = if potential_candi.roughly_matches(key, self.tolerance) {
-            Some(potential_candi)
-        } else {
-            None
-        }?;
-
-        let node: SharedNode<K, V> = self.map.get(matching).cloned()?;
+        let node: SharedNode<MapEntry<K>, V> = self.map.get(candidate).cloned()?;
         self.list.remove(node.clone());
         self.list.add_to_head(node.clone());
         return Some(node.borrow().value.clone());
     }
 
-    fn insert(&mut self, key: K, value: V) {
+    fn insert(&mut self, key: K, value: V, tolerance: f32) {
         if self.len() >= self.max_capacity {
             if let Some(tail) = self.list.remove_tail() {
                 self.map.remove(&tail.borrow().key);
             }
         }
-        let new_node = Node::new(key.clone(), value);
+        let map_entry = MapEntry {
+            key: key.clone(),
+            tolerance,
+        };
+        let new_node = Node::new(map_entry.clone(), value);
         self.list.add_to_head(new_node.clone());
-        self.map.insert(key, new_node);
+        self.map.insert(map_entry, new_node);
     }
 
     fn len(&self) -> usize {
@@ -88,14 +93,12 @@ where
 }
 
 impl<K, V> LRUCache<K, V> {
-    pub fn new(max_capacity: usize, tolerance: f32) -> Self {
+    pub fn new(max_capacity: usize) -> Self {
         assert!(max_capacity > 0);
-        assert!(tolerance > 0.0);
         Self {
             max_capacity,
             map: HashMap::with_capacity(max_capacity),
             list: DoublyLinkedList::new(),
-            tolerance,
         }
     }
 }
@@ -107,13 +110,13 @@ mod tests {
     const TEST_TOLERANCE: f32 = 1e-8;
     #[test]
     fn test_lru_cache_basic_operations() {
-        let mut cache = LRUCache::new(2, TEST_TOLERANCE);
-        cache.insert(1, 1); // Cache is {1=1}
-        cache.insert(2, 2); // Cache is {1=1, 2=2}
+        let mut cache = LRUCache::new(2);
+        cache.insert(1, 1, TEST_TOLERANCE); // Cache is {1=1}
+        cache.insert(2, 2, TEST_TOLERANCE); // Cache is {1=1, 2=2}
         assert_eq!(cache.find(&1), Some(1)); // Returns 1, Cache is {2=2, 1=1}
-        cache.insert(3, 3); // Evicts key 2, Cache is {1=1, 3=3}
+        cache.insert(3, 3, TEST_TOLERANCE); // Evicts key 2, Cache is {1=1, 3=3}
         assert_eq!(cache.find(&2), None); // Key 2 not found
-        cache.insert(4, 4); // Evicts key 1, Cache is {3=3, 4=4}
+        cache.insert(4, 4, TEST_TOLERANCE); // Evicts key 1, Cache is {3=3, 4=4}
         assert_eq!(cache.find(&1), None); // Key 1 not found
         assert_eq!(cache.find(&3), Some(3)); // Returns 3
         assert_eq!(cache.find(&4), Some(4)); // Returns 4
@@ -121,12 +124,12 @@ mod tests {
 
     #[test]
     fn test_lru_cache_eviction_order() {
-        let mut cache = LRUCache::new(3, TEST_TOLERANCE);
-        cache.insert(1, 1); // Cache is {1=1}
-        cache.insert(2, 2); // Cache is {1=1, 2=2}
-        cache.insert(3, 3); // Cache is {1=1, 2=2, 3=3}
+        let mut cache = LRUCache::new(3);
+        cache.insert(1, 1, TEST_TOLERANCE); // Cache is {1=1}
+        cache.insert(2, 2, TEST_TOLERANCE); // Cache is {1=1, 2=2}
+        cache.insert(3, 3, TEST_TOLERANCE); // Cache is {1=1, 2=2, 3=3}
         cache.find(&1); // Access key 1, Cache is {2=2, 3=3, 1=1}
-        cache.insert(4, 4); // Evicts key 2, Cache is {3=3, 1=1, 4=4}
+        cache.insert(4, 4, TEST_TOLERANCE); // Evicts key 2, Cache is {3=3, 1=1, 4=4}
         assert_eq!(cache.find(&2), None); // Key 2 not found
         assert_eq!(cache.find(&3), Some(3)); // Returns 3
         assert_eq!(cache.find(&4), Some(4)); // Returns 4
@@ -135,22 +138,22 @@ mod tests {
 
     #[test]
     fn test_lru_cache_overwrite() {
-        let mut cache = LRUCache::new(2, TEST_TOLERANCE);
-        cache.insert(1, 1); // Cache is {1=1}
-        cache.insert(2, 2); // Cache is {1=1, 2=2}
-        cache.insert(1, 10); // Overwrites key 1, Cache is {2=2, 1=10}
+        let mut cache = LRUCache::new(2);
+        cache.insert(1, 1, TEST_TOLERANCE); // Cache is {1=1}
+        cache.insert(2, 2, TEST_TOLERANCE); // Cache is {1=1, 2=2}
+        cache.insert(1, 10, TEST_TOLERANCE); // Overwrites key 1, Cache is {2=2, 1=10}
         assert_eq!(cache.find(&1), Some(10)); // Returns 10
-        cache.insert(3, 3); // Evicts key 2, Cache is {1=10, 3=3}
+        cache.insert(3, 3, TEST_TOLERANCE); // Evicts key 2, Cache is {1=10, 3=3}
         assert_eq!(cache.find(&2), None); // Key 2 not found
         assert_eq!(cache.find(&3), Some(3)); // Returns 3
     }
 
     #[test]
     fn test_lru_cache_capacity_one() {
-        let mut cache = LRUCache::new(1, TEST_TOLERANCE);
-        cache.insert(1, 1); // Cache is {1=1}
+        let mut cache = LRUCache::new(1);
+        cache.insert(1, 1, TEST_TOLERANCE); // Cache is {1=1}
         assert_eq!(cache.find(&1), Some(1)); // Returns 1
-        cache.insert(2, 2); // Evicts key 1, Cache is {2=2}
+        cache.insert(2, 2, TEST_TOLERANCE); // Evicts key 1, Cache is {2=2}
         assert_eq!(cache.find(&1), None); // Key 1 not found
         assert_eq!(cache.find(&2), Some(2)); // Returns 2
     }
@@ -158,6 +161,6 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_lru_cache_empty() {
-        let _cache: LRUCache<i16, i16> = LRUCache::new(0, TEST_TOLERANCE);
+        let _cache: LRUCache<i16, i16> = LRUCache::new(0);
     }
 }

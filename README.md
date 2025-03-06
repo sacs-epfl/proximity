@@ -1,4 +1,4 @@
-# proximity-cache
+# Proximity 
 
 Proximity is a research project exploring the optimization and speed-recall tradeoffs of approximate vector search in high-dimensional spaces.
 We provide an approximate cache for vector databases that is written in Rust and exposes Python bindings.
@@ -44,4 +44,3 @@ todo
 
 This project is licensed under the MIT License. See LICENSE for details.
 
-This code is meant as a beta/development playground. It should not be used for production systems.
