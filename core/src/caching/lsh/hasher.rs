@@ -19,7 +19,7 @@ use crate::numerics::f32vector::{F32Vector, SIMD_LANECOUNT};
 /// const NUM_HASH: usize = 4;
 /// const BIN_SIZE: f32 = 1.0;
 ///
-/// // Create a new hasher (pads dim to SIMD_LANECOUNT multiple internally)
+/// // Create a new hasher (dim must be a multiple of F32Vector::SIMD_LANECOUNT)
 /// let hasher = PStableHasher::new(NUM_HASH, DIM, BIN_SIZE);
 ///
 /// // Hash a sample vector of length DIM
@@ -47,8 +47,8 @@ impl PStableHasher {
 
     /// Constructs a new hasher with a provided RNG (useful for deterministic testing).
     pub fn with_rng<R: Rng>(num_hash: usize, dim: usize, bin_size: f32, rng: &mut R) -> Self {
-        debug_assert!(dim % SIMD_LANECOUNT == 0); // we expect vectors of size accepted by F32Vector::dot
-
+        assert!(dim % SIMD_LANECOUNT == 0); // we expect vectors of size accepted by F32Vector::dot
+        assert!(bin_size > 0.0);
         // the projections are supposed to be N(0, Id) random gaussian vectors
         let mut gaussian_iter = rng.sample_iter(StandardNormal);
         let projections: Vec<Vec<f32>> = (0..num_hash)
@@ -70,6 +70,7 @@ impl PStableHasher {
 
     /// Hashes `vector` to a `k`-length integer signature.
     pub fn hash(&self, vector: &[f32]) -> Vec<i64> {
+        debug_assert!(vector.len() == self.dim);
         self.projections
             .iter()
             .zip(&self.offsets)
