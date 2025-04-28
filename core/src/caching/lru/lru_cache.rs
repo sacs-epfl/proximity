@@ -17,8 +17,8 @@ use super::map_entry::MapEntry;
 ///
 /// # Example Usage
 /// ```
-/// use proximipy::caching::lru::lru_cache::LRUCache;
-/// use proximipy::caching::approximate_cache::ApproximateCache;
+/// use proximity::caching::lru::lru_cache::LRUCache;
+/// use proximity::caching::approximate_cache::ApproximateCache;
 ///
 /// let mut cache = LRUCache::new(3);
 /// const TEST_TOL: f32 = 2.0;

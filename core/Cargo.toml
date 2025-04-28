@@ -9,7 +9,7 @@ license = "MIT"
 repository = "https://gitlab.epfl.ch/randl/proximity"
 
 [lib]
-name = "proximipy"
+name = "proximity"
 path = "src/lib.rs"
 
 [[bin]]

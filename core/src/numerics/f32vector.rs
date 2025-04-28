@@ -1,6 +1,6 @@
 use std::simd::{num::SimdFloat, Simd};
 
-const SIMD_LANECOUNT: usize = 8;
+pub const SIMD_LANECOUNT: usize = 8;
 type SimdF32 = Simd<f32, SIMD_LANECOUNT>;
 
 #[derive(Debug, Clone)]
