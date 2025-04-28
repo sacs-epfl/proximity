@@ -3,7 +3,7 @@
 Proximity is a research project exploring the optimization and speed-recall tradeoffs of approximate vector search in high-dimensional spaces.
 We provide an approximate cache for vector databases that is written in Rust and exposes Python bindings.
 
-More information is available in our [EuroMLSys '25 publication](https://doi.org/10.1145/3721146.3721938).
+More information is available in our [EuroMLSys '25 publication](https://dl.acm.org/doi/10.1145/3721146.3721941).
 
 Note: This code is under active development and is not recommended for production systems.
 
