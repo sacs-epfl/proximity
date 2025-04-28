@@ -14,8 +14,7 @@ use crate::numerics::f32vector::{F32Vector, SIMD_LANECOUNT};
 ///
 /// ```
 /// use proximity::caching::lsh::hasher::PStableHasher;
-/// use proximity::numerics::f32vector::SIMD_LANECOUNT;
-
+///
 /// const DIM: usize = 8;
 /// const NUM_HASH: usize = 4;
 /// const BIN_SIZE: f32 = 1.0;
