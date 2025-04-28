@@ -60,12 +60,12 @@ mod tests {
 
     #[bench]
     fn perftest(b: &mut test::Bencher) {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let v1: Vec<_> = (0..128)
-            .map(|_| f32::from(rng.gen_range(-20 as i16..20)))
+            .map(|_| f32::from(rng.random_range(-20 as i16..20)))
             .collect();
         let v2s: Vec<f32> = (0 as u64..(128 * 10_000))
-            .map(|_| f32::from(rng.gen_range(-20 as i16..20)))
+            .map(|_| f32::from(rng.random_range(-20 as i16..20)))
             .collect();
 
         assert!(v1.len() == 128);
