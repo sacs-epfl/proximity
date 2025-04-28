@@ -1,10 +1,10 @@
 use std::hash::{Hash, Hasher};
 
-use proximipy::caching::approximate_cache::ApproximateCache;
-use proximipy::caching::fifo::fifo_cache::FifoCache as FifoInternal;
-use proximipy::caching::lru::lru_cache::LRUCache as LruInternal;
-use proximipy::numerics::comp::ApproxComparable;
-use proximipy::numerics::f32vector::F32Vector;
+use proximity::caching::approximate_cache::ApproximateCache;
+use proximity::caching::fifo::fifo_cache::FifoCache as FifoInternal;
+use proximity::caching::lru::lru_cache::LRUCache as LruInternal;
+use proximity::numerics::comp::ApproxComparable;
+use proximity::numerics::f32vector::F32Vector;
 
 use pyo3::PyObject;
 use pyo3::{
