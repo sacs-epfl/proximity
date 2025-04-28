@@ -1,6 +1,6 @@
 use rand::distr::Uniform;
-use rand::Rng;
 use rand::rng;
+use rand::Rng;
 use rand_distr::StandardNormal;
 
 use crate::numerics::f32vector::F32Vector;
@@ -20,12 +20,21 @@ impl PStableHasher {
         let mut rng: rand::prelude::ThreadRng = rng();
 
         let projections = (0..num_hash)
-            .map(|_| (0..dim).map(|_| rng.sample::<f32, _>(StandardNormal) as f32).collect())
+            .map(|_| {
+                (0..dim)
+                    .map(|_| rng.sample::<f32, _>(StandardNormal) as f32)
+                    .collect()
+            })
             .collect();
 
         let uniform = Uniform::new(0.0_f32, bin_size).unwrap();
         let offsets = (0..num_hash).map(|_| rng.sample(uniform)).collect();
-        PStableHasher { num_hash, bin_size, projections, offsets }
+        PStableHasher {
+            num_hash,
+            bin_size,
+            projections,
+            offsets,
+        }
     }
 
     /// Hashes `vector` to a `k`-length integer signature.
