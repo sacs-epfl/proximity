@@ -11,7 +11,6 @@ use std::fs::File;
 use std::io::Write;
 
 extern crate npyz;
-extern crate rand;
 extern crate test;
 
 mod caching;

@@ -50,6 +50,28 @@ impl<'a> F32Vector<'a> {
         intermediate_sum_x8.reduce_sum() // 8-to-1 sum
     }
 
+    pub fn dot(&self, othr: &F32Vector<'a>) -> f32 {
+        debug_assert!(self.len() == othr.len());
+        debug_assert!(self.len() % SIMD_LANECOUNT == 0);
+    
+        // accumulator vector of zeroes
+        let mut accumulated = Simd::<f32, SIMD_LANECOUNT>::splat(0.0);
+    
+        let self_chunks = self.array.chunks_exact(SIMD_LANECOUNT);
+        let othr_chunks = othr.array.chunks_exact(SIMD_LANECOUNT);
+    
+        for (slice_self, slice_othr) in self_chunks.zip(othr_chunks) {
+            // load each chunk into a SIMD register
+            let vx = SimdF32::from_slice(slice_self);
+            let vy = SimdF32::from_slice(slice_othr);
+            // multiply-and-accumulate
+            accumulated += vx * vy;
+        }
+    
+        // horizontal sum across lanes
+        accumulated.reduce_sum()
+    }
+
     /// # Usage
     /// Computes the L2 distance between two vectors.
     ///
