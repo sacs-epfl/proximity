@@ -1,0 +1,105 @@
+use crate::caching::approximate_cache::ApproximateCache;
+use crate::caching::approximate_cache::Tolerance;
+use crate::caching::fifo::fifo_cache::FifoCache;
+use crate::caching::lsh::hasher::SimHashHasher;
+use crate::numerics::f32vector::F32Vector;
+use std::collections::HashMap;
+
+/// A key-value store that uses cosine LSH to direct queries into FIFO cache buckets.
+pub struct LshFifoCache<V> {
+    hasher: SimHashHasher,
+    buckets: HashMap<Vec<bool>, FifoCache<Vec<f32>, V>>,
+    bucket_capacity: usize,
+    tolerance: Tolerance,
+}
+
+impl<V> LshFifoCache<V>
+where
+    V: Clone,
+{
+    /// Create a new LSH-based FIFO cache.
+    ///
+    /// `num_hash` and `dim` configure the random hyperplane hasher,
+    /// `bucket_capacity` is the max size of each FIFO bucket,
+    /// `tolerance` is used for approximate key matching in each bucket.
+    pub fn new(
+        num_hash: usize,
+        dim: usize,
+        bucket_capacity: usize,
+        tolerance: f32,
+        seed: Option<u64>,
+    ) -> Self {
+        let hasher = if let Some(seed) = seed {
+            SimHashHasher::new_seeded(num_hash, dim, seed)
+        } else {
+            SimHashHasher::new(num_hash, dim)
+        };
+
+        Self {
+            hasher,
+            buckets: HashMap::new(),
+            bucket_capacity,
+            tolerance,
+        }
+    }
+
+    /// Compute the LSH signature for a key (after normalization).
+    fn signature(&self, key: &[f32]) -> Vec<bool> {
+        self.hasher.hash(F32Vector::from(key).normalized().as_ref())
+    }
+}
+
+impl<V> ApproximateCache<Vec<f32>, V> for LshFifoCache<V>
+where
+    V: Clone,
+{
+    /// Find a value by key, mutably accessing the bucket for potential reordering.
+    fn find(&mut self, target: &Vec<f32>) -> Option<V> {
+        let sig = self.signature(target);
+        let bucket = self.buckets.get_mut(&sig)?;
+        bucket.find(target)
+    }
+
+    /// Insert a key-value pair, normalizing the key before hashing and storing.
+    fn insert(&mut self, key: Vec<f32>, value: V, _tol: f32) {
+        let sig = self.signature(&key);
+        println!("{:?}", sig);
+
+        let bucket = self
+            .buckets
+            .entry(sig)
+            .or_insert_with(|| FifoCache::new(self.bucket_capacity));
+        bucket.insert(key, value, self.tolerance);
+    }
+
+    fn len(&self) -> usize {
+        self.buckets.values().map(|b| b.len()).sum()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const DIM: usize = 8;
+    const NUM_HASH: usize = 8;
+    const BUCKET_CAP: usize = 2;
+    const TOL: f32 = 1e-6;
+
+    #[test]
+    fn test_lsh_fifo_cache_basic() {
+        let mut cache: LshFifoCache<i32> =
+            LshFifoCache::new(NUM_HASH, DIM, BUCKET_CAP, TOL, Some(42));
+
+        let k1: Vec<f32> = vec![0.1; DIM];
+        let k2: Vec<f32> = vec![-0.2; DIM];
+        let k3: Vec<f32> = vec![0.1; DIM]; // same direction as k1
+
+        cache.insert(k1.clone(), 1, TOL);
+        cache.insert(k2, 2, TOL);
+        assert_eq!(cache.find(&k1), Some(1));
+        cache.insert(k3.clone(), 3, TOL);
+        // Bucket for k1 now has entries [k1=1, k3=3], matches equally
+        assert!(cache.find(&k3) == Some(3) || cache.find(&k3) == Some(1));
+    }
+}

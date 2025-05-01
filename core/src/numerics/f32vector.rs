@@ -8,6 +8,12 @@ pub struct F32Vector<'a> {
     array: &'a [f32],
 }
 
+impl AsRef<[f32]> for F32Vector<'_> {
+    fn as_ref(&self) -> &[f32] {
+        self.array
+    }
+}
+
 impl<'a> F32Vector<'a> {
     pub fn len(&self) -> usize {
         self.array.len()
@@ -83,11 +89,38 @@ impl<'a> F32Vector<'a> {
     pub fn l2_dist(&self, other: &F32Vector<'a>) -> f32 {
         self.l2_dist_squared(other).sqrt()
     }
+
+    /// Returns a new Vec<f32> containing `self` divided by its L2-norm.
+    /// If the norm is zero, returns a zero‐filled Vec.
+    pub fn normalized(&self) -> Vec<f32> {
+        let norm = self.dot(self).sqrt();
+        if norm == 0.0 {
+            // avoid division by zero; return zero vector
+            return vec![0.0; self.len()];
+        }
+        let inv_norm = 1.0 / norm;
+
+        let mut out = Vec::with_capacity(self.len());
+
+        for chunk in self.array.chunks_exact(SIMD_LANECOUNT) {
+            let v = SimdF32::from_slice(chunk);
+            let scaled = v * SimdF32::splat(inv_norm);
+            out.extend_from_slice(&scaled.to_array());
+        }
+
+        out
+    }
 }
 
 impl<'a> From<&'a [f32]> for F32Vector<'a> {
     fn from(value: &'a [f32]) -> Self {
         F32Vector { array: value }
+    }
+}
+
+impl<'a> From<F32Vector<'a>> for &'a [f32] {
+    fn from(value: F32Vector<'a>) -> Self {
+        value.array
     }
 }
 
