@@ -1,2 +1,3 @@
-pub mod hasher;
-pub mod lsh_cache;
+mod hasher;
+mod lsh_cache;
+pub use lsh_cache::LshFifoCache;

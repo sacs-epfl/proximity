@@ -1,4 +1,4 @@
-use super::f32vector::F32Vector;
+use super::F32Vector;
 
 pub trait ApproxComparable {
     #[inline]

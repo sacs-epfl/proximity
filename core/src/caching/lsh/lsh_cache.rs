@@ -1,8 +1,8 @@
 use crate::caching::approximate_cache::ApproximateCache;
 use crate::caching::approximate_cache::Tolerance;
-use crate::caching::fifo::fifo_cache::FifoCache;
+use crate::caching::fifo::FifoCache;
 use crate::caching::lsh::hasher::SimHashHasher;
-use crate::numerics::f32vector::F32Vector;
+use crate::numerics::F32Vector;
 use std::collections::HashMap;
 
 /// A key-value store that uses cosine LSH to direct queries into FIFO cache buckets.

@@ -1,5 +1,5 @@
 use proximity::caching::{
-    approximate_cache::ApproximateCache, fifo::fifo_cache::FifoCache as FifoInternal,
+    ApproximateCache, FifoCache as FifoInternal,
 };
 use pyo3::{pyclass, pymethods, PyObject};
 

@@ -1,5 +1,5 @@
 use proximity::caching::{
-    approximate_cache::ApproximateCache, lsh::lsh_cache::LshFifoCache as LshInternal,
+    ApproximateCache, LshFifoCache as LshInternal,
 };
 use pyo3::{pyclass, pymethods, PyObject};
 

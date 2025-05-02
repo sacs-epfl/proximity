@@ -1,4 +1,11 @@
-pub mod approximate_cache;
-pub mod fifo;
-pub mod lru;
-pub mod lsh;
+#![allow(unused_imports)]
+
+mod approximate_cache;
+mod fifo;
+mod lru;
+mod lsh;
+
+pub use fifo::FifoCache;
+pub use lru::LRUCache;
+pub use lsh::LshFifoCache;
+pub use approximate_cache::ApproximateCache;

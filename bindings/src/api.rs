@@ -1,7 +1,7 @@
 use std::hash::{Hash, Hasher};
 
-use proximity::numerics::comp::ApproxComparable;
-use proximity::numerics::f32vector::F32Vector;
+use proximity::numerics::ApproxComparable;
+use proximity::numerics::F32Vector;
 
 use pyo3::{
     types::{PyAnyMethods, PyList},

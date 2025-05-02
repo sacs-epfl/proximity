@@ -2,10 +2,10 @@ use rand::rngs::{StdRng, ThreadRng};
 use rand::{rng, Rng, SeedableRng};
 use rand_distr::StandardNormal;
 
-use crate::numerics::f32vector::{F32Vector, SIMD_LANECOUNT};
+use crate::numerics::{F32Vector, SIMD_LANECOUNT};
 
 pub struct SimHashHasher {
-    pub stored_vectors_dim: usize,
+    stored_vectors_dim: usize,
     /// random hyperplane normals
     projections: Vec<Vec<f32>>,
 }

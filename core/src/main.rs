@@ -3,10 +3,10 @@
 
 use std::path::Path;
 
-use caching::approximate_cache::ApproximateCache;
-use caching::lru::lru_cache::LRUCache;
+use caching::ApproximateCache;
+use caching::LRUCache;
 use fs::file_manager;
-use numerics::f32vector::F32Vector;
+use numerics::F32Vector;
 use std::fs::File;
 use std::io::Write;
 
@@ -54,7 +54,7 @@ mod tests {
 
     use rand::Rng as _;
 
-    use crate::numerics::f32vector::F32Vector;
+    use crate::numerics::F32Vector;
 
     const VEC_SIZE: usize = (u32::MAX / 128) as usize;
 
