@@ -63,8 +63,6 @@ where
     /// Insert a key-value pair, normalizing the key before hashing and storing.
     fn insert(&mut self, key: Vec<f32>, value: V, _tol: f32) {
         let sig = self.signature(&key);
-        println!("{:?}", sig);
-
         let bucket = self
             .buckets
             .entry(sig)
@@ -101,5 +99,60 @@ mod tests {
         cache.insert(k3.clone(), 3, TOL);
         // Bucket for k1 now has entries [k1=1, k3=3], matches equally
         assert!(cache.find(&k3) == Some(3) || cache.find(&k3) == Some(1));
+    }
+
+    #[test]
+    fn test_lsh_fifo_cache_eviction_order() {
+        let mut cache = LshFifoCache::new(NUM_HASH, DIM, 2, TOL, Some(123));
+
+        let k2 = vec![1.0; DIM];
+        let k3 = vec![2.0; DIM];
+        let k4 = vec![3.0; DIM];
+
+        cache.insert(k2.clone(), 20, TOL);
+        cache.insert(k3.clone(), 30, TOL);
+        cache.insert(k4.clone(), 40, TOL);
+
+        // One of the earlier keys must have been evicted (depending on bucket)
+        let hits = vec![cache.find(&k2), cache.find(&k3), cache.find(&k4)];
+
+        assert_eq!(hits, vec![None, Some(30), Some(40)]);
+    }
+
+    #[test]
+    fn test_lsh_fifo_cache_overwrite_behavior() {
+        let mut cache = LshFifoCache::new(NUM_HASH, DIM, 2, TOL, Some(77));
+
+        let k = vec![1.0; DIM];
+        cache.insert(k.clone(), 111, TOL);
+        assert_eq!(cache.find(&k), Some(111));
+
+        cache.insert(k.clone(), 999, TOL);
+        let val = cache.find(&k).unwrap();
+        assert!(
+            val == 111,
+            "FIFO-LSH will match both with a preference for oldest"
+        );
+
+        cache.insert(vec![2.0; DIM], 222, TOL); // Will evict one version of k, vectors that point in the same direction have the same hash
+        let maybe = cache.find(&k);
+        assert!(maybe == Some(999), "LSH will find the closest match");
+    }
+
+    #[test]
+    fn test_lsh_fifo_cache_capacity_one() {
+        let mut cache = LshFifoCache::new(NUM_HASH, DIM, 1, TOL, Some(321));
+
+        let k1 = vec![2.0; DIM];
+        let k2 = vec![1.0; DIM];
+        cache.insert(k1.clone(), 1, TOL);
+        assert_eq!(cache.find(&k1), Some(1));
+
+        cache.insert(k2.clone(), 2, TOL);
+
+        let f1 = cache.find(&k1);
+        let f2 = cache.find(&k2);
+        let hits = vec![f1, f2].into_iter().filter(|x| x.is_some()).count();
+        assert_eq!(hits, 1, "Only one key should be in cache due to capacity 1");
     }
 }
