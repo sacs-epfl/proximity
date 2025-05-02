@@ -5,16 +5,7 @@ use pyo3::{pyclass, pymethods, PyObject};
 
 use crate::api::F32VecPy;
 
-// unsendable == should hard-crash if Python tries to access it from
-// two different Python threads.
-//
-// The implementation is very much thread-unsafe anyways (lots of mutations),
-// so this is an OK behavior, we will detect it with a nice backtrace
-// and without UB.
-//
-// Even in the case where we want the cache to be multithreaded, this would
-// happen on the Rust side and will not be visible to the Python ML pipeline.
-#[pyclass(unsendable)]
+#[pyclass]
 pub struct FifoCache {
     inner: FifoInternal<F32VecPy, PyObject>,
 }
