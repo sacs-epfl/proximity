@@ -1,6 +1,4 @@
-use proximity::caching::{
-    ApproximateCache, FifoCache as FifoInternal,
-};
+use proximity::caching::{ApproximateCache, FifoCache as FifoInternal};
 use pyo3::{pyclass, pymethods, PyObject};
 
 use crate::api::F32VecPy;
