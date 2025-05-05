@@ -10,7 +10,6 @@ pub struct LshFifoCache<V> {
     hasher: SimHashHasher,
     buckets: HashMap<Vec<bool>, FifoCache<Vec<f32>, V>>,
     bucket_capacity: usize,
-    tolerance: Tolerance,
 }
 
 impl<V> LshFifoCache<V>
@@ -26,7 +25,6 @@ where
         num_hash: usize,
         dim: usize,
         bucket_capacity: usize,
-        tolerance: f32,
         seed: Option<u64>,
     ) -> Self {
         let hasher = if let Some(seed) = seed {
@@ -39,7 +37,6 @@ where
             hasher,
             buckets: HashMap::new(),
             bucket_capacity,
-            tolerance,
         }
     }
 
@@ -61,13 +58,13 @@ where
     }
 
     /// Insert a key-value pair, normalizing the key before hashing and storing.
-    fn insert(&mut self, key: Vec<f32>, value: V, _tol: f32) {
+    fn insert(&mut self, key: Vec<f32>, value: V, tol: f32) {
         let sig = self.signature(&key);
         let bucket = self
             .buckets
             .entry(sig)
             .or_insert_with(|| FifoCache::new(self.bucket_capacity));
-        bucket.insert(key, value, self.tolerance);
+        bucket.insert(key, value, tol);
     }
 
     fn len(&self) -> usize {
@@ -87,7 +84,7 @@ mod tests {
     #[test]
     fn test_lsh_fifo_cache_basic() {
         let mut cache: LshFifoCache<i32> =
-            LshFifoCache::new(NUM_HASH, DIM, BUCKET_CAP, TOL, Some(42));
+            LshFifoCache::new(NUM_HASH, DIM, BUCKET_CAP, Some(42));
 
         let k1: Vec<f32> = vec![0.1; DIM];
         let k2: Vec<f32> = vec![-0.2; DIM];
@@ -103,7 +100,7 @@ mod tests {
 
     #[test]
     fn test_lsh_fifo_cache_eviction_order() {
-        let mut cache = LshFifoCache::new(NUM_HASH, DIM, 2, TOL, Some(123));
+        let mut cache = LshFifoCache::new(NUM_HASH, DIM, 2, Some(123));
 
         let k2 = vec![1.0; DIM];
         let k3 = vec![2.0; DIM];
@@ -121,7 +118,7 @@ mod tests {
 
     #[test]
     fn test_lsh_fifo_cache_overwrite_behavior() {
-        let mut cache = LshFifoCache::new(NUM_HASH, DIM, 2, TOL, Some(77));
+        let mut cache = LshFifoCache::new(NUM_HASH, DIM, 2, Some(77));
 
         let k = vec![1.0; DIM];
         cache.insert(k.clone(), 111, TOL);
@@ -141,7 +138,7 @@ mod tests {
 
     #[test]
     fn test_lsh_fifo_cache_capacity_one() {
-        let mut cache = LshFifoCache::new(NUM_HASH, DIM, 1, TOL, Some(321));
+        let mut cache = LshFifoCache::new(NUM_HASH, DIM, 1, Some(321));
 
         let k1 = vec![2.0; DIM];
         let k2 = vec![1.0; DIM];

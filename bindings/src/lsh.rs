@@ -11,16 +11,15 @@ pub struct LshFifoCache {
 #[pymethods]
 impl LshFifoCache {
     #[new]
-    #[pyo3(signature = (num_hash, dim, bucket_capacity, tolerance, seed=None))]
+    #[pyo3(signature = (num_hash, dim, bucket_capacity, seed=None))]
     pub fn new(
         num_hash: usize,
         dim: usize,
         bucket_capacity: usize,
-        tolerance: f32,
         seed: Option<u64>,
     ) -> Self {
         Self {
-            inner: LshInternal::new(num_hash, dim, bucket_capacity, tolerance, seed),
+            inner: LshInternal::new(num_hash, dim, bucket_capacity, seed),
         }
     }
 
