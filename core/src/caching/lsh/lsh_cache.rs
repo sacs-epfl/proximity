@@ -21,12 +21,7 @@ where
     /// `num_hash` and `dim` configure the random hyperplane hasher,
     /// `bucket_capacity` is the max size of each FIFO bucket,
     /// `tolerance` is used for approximate key matching in each bucket.
-    pub fn new(
-        num_hash: usize,
-        dim: usize,
-        bucket_capacity: usize,
-        seed: Option<u64>,
-    ) -> Self {
+    pub fn new(num_hash: usize, dim: usize, bucket_capacity: usize, seed: Option<u64>) -> Self {
         let hasher = if let Some(seed) = seed {
             SimHashHasher::new_seeded(num_hash, dim, seed)
         } else {
@@ -83,8 +78,7 @@ mod tests {
 
     #[test]
     fn test_lsh_fifo_cache_basic() {
-        let mut cache: LshFifoCache<i32> =
-            LshFifoCache::new(NUM_HASH, DIM, BUCKET_CAP, Some(42));
+        let mut cache: LshFifoCache<i32> = LshFifoCache::new(NUM_HASH, DIM, BUCKET_CAP, Some(42));
 
         let k1: Vec<f32> = vec![0.1; DIM];
         let k2: Vec<f32> = vec![-0.2; DIM];
