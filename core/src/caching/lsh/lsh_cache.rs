@@ -11,9 +11,10 @@ use std::hash::Hash;
 use std::marker::PhantomData;
 
 /// A key-value store that uses cosine LSH to direct queries into fixed-size cache buckets.
-pub struct LshCache<K: ApproxComparable, V, C>
+pub struct LshCache<K, V, C>
 where
     C: ApproximateCache<K, V>,
+    K: ApproxComparable,
 {
     hasher: SimHashHasher,
     buckets: HashMap<Vec<bool>, C>,
@@ -21,9 +22,11 @@ where
     phantomas: PhantomData<(K, V)>,
 }
 
-impl<K: ApproxComparable + AsRef<[f32]>, V, C: ApproximateCache<K, V>> LshCache<K, V, C>
+impl<K, V, C> LshCache<K, V, C>
 where
     V: Clone,
+    K: ApproxComparable + AsRef<[f32]>,
+    C: ApproximateCache<K, V>,
 {
     /// Create a new LSH-based FIFO cache.
     ///
@@ -61,10 +64,10 @@ where
     }
 }
 
-impl<K: ApproxComparable + AsRef<[f32]>, V> ApproximateCache<K, V>
-    for LshCache<K, V, FifoCache<K, V>>
+impl<K, V> ApproximateCache<K, V> for LshCache<K, V, FifoCache<K, V>>
 where
     V: Clone,
+    K: ApproxComparable + AsRef<[f32]>,
 {
     /// Find a value by key, mutably accessing the bucket for potential reordering.
     fn find(&mut self, target: &K) -> Option<V> {
@@ -111,12 +114,56 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::hash::Hasher;
+
     use super::*;
 
     const DIM: usize = 8;
     const NUM_HASH: usize = 8;
     const BUCKET_CAP: usize = 2;
     const TOL: f32 = 1e-6;
+
+    #[cfg(test)]
+    #[derive(Debug, Clone)]
+    struct TestVecF32(pub Vec<f32>);
+
+    #[cfg(test)]
+    impl PartialEq for TestVecF32 {
+        fn eq(&self, other: &Self) -> bool {
+            self.0.len() == other.0.len()
+                && self
+                    .0
+                    .iter()
+                    .zip(&other.0)
+                    .all(|(a, b)| a.to_bits() == b.to_bits())
+        }
+    }
+
+    #[cfg(test)]
+    impl ApproxComparable for TestVecF32 {
+        fn fuzziness(&self, instore: &Self) -> f32 {
+            self.0.fuzziness(&instore.0)
+        }
+    }
+
+    #[cfg(test)]
+    impl Hash for TestVecF32 {
+        fn hash<H: Hasher>(&self, state: &mut H) {
+            for &val in &self.0 {
+                state.write_u32(val.to_bits());
+            }
+        }
+    }
+
+    #[cfg(test)]
+    impl AsRef<[f32]> for TestVecF32 {
+        fn as_ref(&self) -> &[f32] {
+            self.0.as_ref()
+        }
+    }
+
+    #[cfg(test)]
+    impl Eq for TestVecF32 {}
 
     #[test]
     fn test_lsh_fifo_cache_basic() {
@@ -187,5 +234,77 @@ mod tests {
         let f2 = cache.find(&k2);
         let hits = vec![f1, f2].into_iter().filter(|x| x.is_some()).count();
         assert_eq!(hits, 1, "Only one key should be in cache due to capacity 1");
+    }
+
+    #[test]
+    fn test_lsh_lru_cache_basic() {
+        let mut cache: LshCache<TestVecF32, _, LruCache<_, _>> =
+            LshCache::new(NUM_HASH, DIM, BUCKET_CAP, Some(99));
+
+        let k1 = TestVecF32(vec![0.1; DIM]);
+        let k2 = TestVecF32(vec![-0.1; DIM]);
+        let k3 = TestVecF32(vec![0.1; DIM]); // Same direction as k1
+
+        cache.insert(k1.clone(), 10, TOL);
+        cache.insert(k2.clone(), 20, TOL);
+        assert_eq!(cache.find(&k1), Some(10));
+        cache.insert(k3.clone(), 30, TOL);
+
+        let found = cache.find(&k3);
+        assert!(found == Some(30) || found == Some(10));
+    }
+
+    #[test]
+    fn test_lsh_lru_cache_eviction_order() {
+        let mut cache: LshCache<_, _, LruCache<_, _>> = LshCache::new(NUM_HASH, DIM, 2, Some(202));
+
+        let k1 = TestVecF32(vec![1.0; DIM]);
+        let k2 = TestVecF32(vec![2.0; DIM]);
+        let k3 = TestVecF32(vec![3.0; DIM]);
+
+        cache.insert(k1.clone(), 1, TOL);
+        cache.insert(k2.clone(), 2, TOL);
+        // Access k1 to make it most recently used
+        cache.find(&k1);
+        cache.insert(k3.clone(), 3, TOL);
+
+        // k2 should be evicted (least recently used)
+        assert_eq!(cache.find(&k1), Some(1));
+        assert_eq!(cache.find(&k2), None);
+        assert_eq!(cache.find(&k3), Some(3));
+    }
+
+    #[test]
+    fn test_lsh_lru_cache_overwrite_behavior() {
+        let mut cache: LshCache<_, _, LruCache<_, _>> = LshCache::new(NUM_HASH, DIM, 2, Some(303));
+
+        let k = TestVecF32(vec![1.0; DIM]);
+        cache.insert(k.clone(), 100, TOL);
+        assert_eq!(cache.find(&k), Some(100));
+        cache.insert(k.clone(), 200, TOL);
+
+
+        cache.insert(k.clone(), 999, TOL); // LRU should discard 100
+        let val = cache.find(&k);
+        assert!(val == Some(999) || val == Some(200));
+    }
+
+    #[test]
+    fn test_lsh_lru_cache_capacity_one() {
+        let mut cache: LshCache<_, _, LruCache<_, _>> = LshCache::new(NUM_HASH, DIM, 1, Some(404));
+
+        let k1 = TestVecF32(vec![2.0; DIM]);
+        let k2 = TestVecF32(vec![1.0; DIM]);
+
+        cache.insert(k1.clone(), 1, TOL);
+        assert_eq!(cache.find(&k1), Some(1));
+
+        cache.insert(k2.clone(), 2, TOL);
+        let hits = vec![cache.find(&k1), cache.find(&k2)];
+
+        assert_eq!(
+            hits, vec![None, Some(2)],
+            "Only one key should remain in cache due to capacity 1"
+        );
     }
 }
