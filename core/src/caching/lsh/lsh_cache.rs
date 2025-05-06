@@ -283,7 +283,6 @@ mod tests {
         assert_eq!(cache.find(&k), Some(100));
         cache.insert(k.clone(), 200, TOL);
 
-
         cache.insert(k.clone(), 999, TOL); // LRU should discard 100
         let val = cache.find(&k);
         assert!(val == Some(999) || val == Some(200));
@@ -303,7 +302,8 @@ mod tests {
         let hits = vec![cache.find(&k1), cache.find(&k2)];
 
         assert_eq!(
-            hits, vec![None, Some(2)],
+            hits,
+            vec![None, Some(2)],
             "Only one key should remain in cache due to capacity 1"
         );
     }
