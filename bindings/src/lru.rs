@@ -1,4 +1,4 @@
-use proximity::caching::{ApproximateCache, LRUCache as LruInternal};
+use proximity::caching::{ApproximateCache, LruCache as LruInternal};
 use pyo3::{pyclass, pymethods, PyObject};
 
 use crate::api::F32VecPy;

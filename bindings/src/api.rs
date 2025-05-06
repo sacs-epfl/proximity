@@ -33,6 +33,12 @@ impl Hash for VecPy<f32> {
     }
 }
 
+impl AsRef<[f32]> for VecPy<f32> {
+    fn as_ref(&self) -> &[f32] {
+        self.inner.as_ref()
+    }
+}
+
 /// Explain to Rust how to parse some random python object into an actual Rust vector
 /// This involves new allocations because Python cannot be trusted to keep this
 /// reference alive.

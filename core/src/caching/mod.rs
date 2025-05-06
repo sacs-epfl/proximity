@@ -7,5 +7,5 @@ mod lsh;
 
 pub use approximate_cache::ApproximateCache;
 pub use fifo::FifoCache;
-pub use lru::LRUCache;
-pub use lsh::LshFifoCache;
+pub use lru::LruCache;
+pub use lsh::LshCache;
