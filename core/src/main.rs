@@ -3,15 +3,14 @@
 
 use std::path::Path;
 
-use caching::approximate_cache::ApproximateCache;
-use caching::lru::lru_cache::LRUCache;
+use caching::ApproximateCache;
+use caching::LruCache;
 use fs::file_manager;
-use numerics::f32vector::F32Vector;
+use numerics::F32Vector;
 use std::fs::File;
 use std::io::Write;
 
 extern crate npyz;
-extern crate rand;
 extern crate test;
 
 mod caching;
@@ -27,7 +26,7 @@ fn main() {
     let vecs_f: Vec<f32> = vecs.into_iter().map(f32::from).collect();
     println!("{:?}", vecs_f.chunks_exact(128).next().unwrap());
 
-    let mut ulc = LRUCache::<F32Vector, usize>::new(10000);
+    let mut ulc = LruCache::<F32Vector, usize>::new(10000);
     let mut count: u32 = 0;
     let mut scanned: usize = 0;
 
@@ -55,18 +54,18 @@ mod tests {
 
     use rand::Rng as _;
 
-    use crate::numerics::f32vector::F32Vector;
+    use crate::numerics::F32Vector;
 
     const VEC_SIZE: usize = (u32::MAX / 128) as usize;
 
     #[bench]
     fn perftest(b: &mut test::Bencher) {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let v1: Vec<_> = (0..128)
-            .map(|_| f32::from(rng.gen_range(-20 as i16..20)))
+            .map(|_| f32::from(rng.random_range(-20 as i16..20)))
             .collect();
         let v2s: Vec<f32> = (0 as u64..(128 * 10_000))
-            .map(|_| f32::from(rng.gen_range(-20 as i16..20)))
+            .map(|_| f32::from(rng.random_range(-20 as i16..20)))
             .collect();
 
         assert!(v1.len() == 128);

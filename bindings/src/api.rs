@@ -1,65 +1,15 @@
 use std::hash::{Hash, Hasher};
 
-use proximipy::caching::approximate_cache::ApproximateCache;
-use proximipy::caching::fifo::fifo_cache::FifoCache as FifoInternal;
-use proximipy::caching::lru::lru_cache::LRUCache as LruInternal;
-use proximipy::numerics::comp::ApproxComparable;
-use proximipy::numerics::f32vector::F32Vector;
+use proximity::numerics::ApproxComparable;
+use proximity::numerics::F32Vector;
 
-use pyo3::PyObject;
 use pyo3::{
-    pyclass, pymethods,
     types::{PyAnyMethods, PyList},
     Bound, FromPyObject, IntoPyObject, PyErr,
 };
 
-macro_rules! create_pythonized_interface {
-    ($internal : ident, $name: ident, $keytype: ident) => {
-        // unsendable == should hard-crash if Python tries to access it from
-        // two different Python threads.
-        //
-        // The implementation is very much thread-unsafe anyways (lots of mutations),
-        // so this is an OK behavior, we will detect it with a nice backtrace
-        // and without UB.
-        //
-        // Even in the case where we want the cache to be multithreaded, this would
-        // happen on the Rust side and will not be visible to the Python ML pipeline.
-        #[pyclass(unsendable)]
-        pub struct $name {
-            inner: $internal<$keytype, PyObject>,
-        }
-
-        #[pymethods]
-        impl $name {
-            #[new]
-            pub fn new(max_capacity: usize) -> Self {
-                Self {
-                    inner: $internal::new(max_capacity),
-                }
-            }
-
-            fn find(&mut self, k: $keytype) -> Option<PyObject> {
-                self.inner.find(&k)
-            }
-
-            fn batch_find(&mut self, ks: Vec<$keytype>) -> Vec<Option<PyObject>> {
-                // more efficient than a python for loop
-                ks.into_iter().map(|k| self.find(k)).collect()
-            }
-
-            fn insert(&mut self, key: $keytype, value: PyObject, tolerance: f32) {
-                self.inner.insert(key, value, tolerance)
-            }
-
-            fn __len__(&self) -> usize {
-                self.inner.len()
-            }
-        }
-    };
-}
-
-struct VecPy<T> {
-    inner: Vec<T>,
+pub struct VecPy<T> {
+    pub inner: Vec<T>,
 }
 
 impl PartialEq for VecPy<f32> {
@@ -80,6 +30,12 @@ impl Hash for VecPy<f32> {
         for &val in &self.inner {
             state.write_u32(val.to_bits());
         }
+    }
+}
+
+impl AsRef<[f32]> for VecPy<f32> {
+    fn as_ref(&self) -> &[f32] {
+        self.inner.as_ref()
     }
 }
 
@@ -136,7 +92,4 @@ impl ApproxComparable for VecPy<f32> {
     }
 }
 
-type F32VecPy = VecPy<f32>;
-
-create_pythonized_interface!(LruInternal, LRUCache, F32VecPy);
-create_pythonized_interface!(FifoInternal, FifoCache, F32VecPy);
+pub type F32VecPy = VecPy<f32>;

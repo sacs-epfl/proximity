@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use crate::caching::approximate_cache::ApproximateCache;
 use crate::caching::approximate_cache::Tolerance;
-use crate::numerics::comp::ApproxComparable;
+use crate::numerics::ApproxComparable;
 
 #[derive(Clone)]
 struct CacheLine<K, V> {
@@ -30,7 +30,7 @@ where
                 target
                     .fuzziness(&x.key)
                     .partial_cmp(&target.fuzziness(&y.key))
-                    .unwrap()
+                    .unwrap() // finding NaNs here should crash the program
             })?;
         Some(candidate.value.clone())
     }
