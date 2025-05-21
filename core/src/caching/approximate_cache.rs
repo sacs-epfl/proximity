@@ -1,4 +1,4 @@
-use crate::numerics::comp::ApproxComparable;
+use crate::numerics::ApproxComparable;
 
 pub type Tolerance = f32;
 

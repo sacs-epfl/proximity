@@ -1,1 +1,2 @@
-pub mod fifo_cache;
+mod fifo_cache;
+pub use fifo_cache::FifoCache;

@@ -9,7 +9,7 @@ license = "MIT"
 repository = "https://gitlab.epfl.ch/randl/proximity"
 
 [lib]
-name = "proximipy"
+name = "proximity"
 path = "src/lib.rs"
 
 [[bin]]
@@ -23,4 +23,5 @@ quickcheck = "1.0.3"
 
 [dependencies]
 npyz = "0.8.3"
-rand = "0.8.5"
+rand = "0.9"
+rand_distr = "0.5.1"

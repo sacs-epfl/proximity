@@ -1,11 +1,17 @@
 use std::simd::{num::SimdFloat, Simd};
 
-const SIMD_LANECOUNT: usize = 8;
+pub const SIMD_LANECOUNT: usize = 8;
 type SimdF32 = Simd<f32, SIMD_LANECOUNT>;
 
 #[derive(Debug, Clone)]
 pub struct F32Vector<'a> {
     array: &'a [f32],
+}
+
+impl AsRef<[f32]> for F32Vector<'_> {
+    fn as_ref(&self) -> &[f32] {
+        self.array
+    }
 }
 
 impl<'a> F32Vector<'a> {
@@ -50,6 +56,28 @@ impl<'a> F32Vector<'a> {
         intermediate_sum_x8.reduce_sum() // 8-to-1 sum
     }
 
+    pub fn dot(&self, othr: &F32Vector<'a>) -> f32 {
+        debug_assert!(self.len() == othr.len());
+        debug_assert!(self.len() % SIMD_LANECOUNT == 0);
+
+        // accumulator vector of zeroes
+        let mut accumulated = Simd::<f32, SIMD_LANECOUNT>::splat(0.0);
+
+        let self_chunks = self.array.chunks_exact(SIMD_LANECOUNT);
+        let othr_chunks = othr.array.chunks_exact(SIMD_LANECOUNT);
+
+        for (slice_self, slice_othr) in self_chunks.zip(othr_chunks) {
+            // load each chunk into a SIMD register
+            let vx = SimdF32::from_slice(slice_self);
+            let vy = SimdF32::from_slice(slice_othr);
+            // multiply-and-accumulate
+            accumulated += vx * vy;
+        }
+
+        // horizontal sum across lanes
+        accumulated.reduce_sum()
+    }
+
     /// # Usage
     /// Computes the L2 distance between two vectors.
     ///
@@ -61,11 +89,38 @@ impl<'a> F32Vector<'a> {
     pub fn l2_dist(&self, other: &F32Vector<'a>) -> f32 {
         self.l2_dist_squared(other).sqrt()
     }
+
+    /// Returns a new Vec<f32> containing `self` divided by its L2-norm.
+    /// If the norm is zero, returns a zero‐filled Vec.
+    pub fn normalized(&self) -> Vec<f32> {
+        let norm = self.dot(self).sqrt();
+        if norm == 0.0 {
+            // avoid division by zero; return zero vector
+            return vec![0.0; self.len()];
+        }
+        let inv_norm = 1.0 / norm;
+
+        let mut out = Vec::with_capacity(self.len());
+
+        for chunk in self.array.chunks_exact(SIMD_LANECOUNT) {
+            let v = SimdF32::from_slice(chunk);
+            let scaled = v * SimdF32::splat(inv_norm);
+            out.extend_from_slice(&scaled.to_array());
+        }
+
+        out
+    }
 }
 
 impl<'a> From<&'a [f32]> for F32Vector<'a> {
     fn from(value: &'a [f32]) -> Self {
         F32Vector { array: value }
+    }
+}
+
+impl<'a> From<F32Vector<'a>> for &'a [f32] {
+    fn from(value: F32Vector<'a>) -> Self {
+        value.array
     }
 }
 
