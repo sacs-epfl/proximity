@@ -40,12 +40,11 @@ impl<C> LshCache<C> {
     }
 }
 
-
 impl<K, V, C> ApproximateCache<K, V> for LshCache<C>
 where
     V: Clone,
     K: ApproxComparable + AsRef<[f32]>,
-    C : DefaultApproximateCache<K, V>
+    C: DefaultApproximateCache<K, V>,
 {
     /// Find a value by key, mutably accessing the bucket for potential reordering.
     fn find(&mut self, target: &K) -> Option<V> {
@@ -194,8 +193,7 @@ mod tests {
 
     #[test]
     fn test_lsh_lru_cache_basic() {
-        let mut cache  =
-            LshLruCache::new(NUM_HASH, DIM, BUCKET_CAP, Some(99));
+        let mut cache = LshLruCache::new(NUM_HASH, DIM, BUCKET_CAP, Some(99));
 
         let k1 = TestVecF32(vec![0.1; DIM]);
         let k2 = TestVecF32(vec![-0.1; DIM]);

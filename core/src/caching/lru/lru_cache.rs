@@ -92,8 +92,12 @@ where
     }
 }
 
-impl <K, V> DefaultApproximateCache<K, V> for LruCache<K, V> where K : ApproxComparable + Eq + Hash + Clone, V : Clone {
-    fn from_capacity(cap : usize) -> Self {
+impl<K, V> DefaultApproximateCache<K, V> for LruCache<K, V>
+where
+    K: ApproxComparable + Eq + Hash + Clone,
+    V: Clone,
+{
+    fn from_capacity(cap: usize) -> Self {
         LruCache::new(cap)
     }
 }

@@ -14,6 +14,9 @@ where
     }
 }
 
-pub trait DefaultApproximateCache<K, V> : ApproximateCache<K, V> where K : ApproxComparable {
-    fn from_capacity(cap : usize) -> Self;
+pub trait DefaultApproximateCache<K, V>: ApproximateCache<K, V>
+where
+    K: ApproxComparable,
+{
+    fn from_capacity(cap: usize) -> Self;
 }

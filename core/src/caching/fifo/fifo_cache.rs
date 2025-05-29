@@ -53,8 +53,12 @@ where
     }
 }
 
-impl <K, V> DefaultApproximateCache<K, V> for FifoCache<K, V> where K : ApproxComparable, V : Clone {
-    fn from_capacity(cap : usize) -> FifoCache<K, V> {
+impl<K, V> DefaultApproximateCache<K, V> for FifoCache<K, V>
+where
+    K: ApproxComparable,
+    V: Clone,
+{
+    fn from_capacity(cap: usize) -> FifoCache<K, V> {
         FifoCache::new(cap)
     }
 }
