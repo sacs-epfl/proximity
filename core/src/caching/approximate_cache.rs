@@ -13,3 +13,7 @@ where
         self.len() == 0
     }
 }
+
+pub trait DefaultApproximateCache<K, V> : ApproximateCache<K, V> where K : ApproxComparable {
+    fn from_capacity(cap : usize) -> Self;
+}

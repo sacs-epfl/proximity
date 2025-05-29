@@ -3,7 +3,7 @@ use std::hash::Hash;
 
 use crate::numerics::ApproxComparable;
 
-use crate::caching::approximate_cache::ApproximateCache;
+use crate::caching::approximate_cache::{ApproximateCache, DefaultApproximateCache};
 
 use super::linked_list::DoublyLinkedList;
 use super::list_node::{Node, SharedNode};
@@ -89,6 +89,12 @@ where
 
     fn len(&self) -> usize {
         self.map.len()
+    }
+}
+
+impl <K, V> DefaultApproximateCache<K, V> for LruCache<K, V> where K : ApproxComparable + Eq + Hash + Clone, V : Clone {
+    fn from_capacity(cap : usize) -> Self {
+        LruCache::new(cap)
     }
 }
 

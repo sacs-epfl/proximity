@@ -1,11 +1,11 @@
-use proximity::caching::{ApproximateCache, LshCache as LshInternal};
+use proximity::caching::{ApproximateCache, LshFifoCache as LshFifoInternal};
 use pyo3::{pyclass, pymethods, PyObject};
 
 use crate::api::F32VecPy;
 
 #[pyclass]
 pub struct LshFifoCache {
-    inner: LshInternal<F32VecPy, PyObject, proximity::caching::FifoCache<F32VecPy, PyObject>>,
+    inner: LshFifoInternal<F32VecPy, PyObject>,
 }
 
 #[pymethods]
@@ -14,7 +14,7 @@ impl LshFifoCache {
     #[pyo3(signature = (num_hash, dim, bucket_capacity, seed=None))]
     pub fn new(num_hash: usize, dim: usize, bucket_capacity: usize, seed: Option<u64>) -> Self {
         Self {
-            inner: LshInternal::new(num_hash, dim, bucket_capacity, seed),
+            inner: LshFifoInternal::new(num_hash, dim, bucket_capacity, seed),
         }
     }
 

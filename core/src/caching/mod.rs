@@ -9,3 +9,5 @@ pub use approximate_cache::ApproximateCache;
 pub use fifo::FifoCache;
 pub use lru::LruCache;
 pub use lsh::LshCache;
+pub use lsh::LshFifoCache;
+pub use lsh::LshLruCache;

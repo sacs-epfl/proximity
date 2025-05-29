@@ -1,15 +1,9 @@
 use std::hash::Hash;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct MapEntry<K> {
     pub key: K,
     pub tolerance: f32,
-}
-
-impl<K: Eq> PartialEq for MapEntry<K> {
-    fn eq(&self, other: &Self) -> bool {
-        self.key == other.key && self.tolerance == other.tolerance
-    }
 }
 
 impl<K: Eq> Eq for MapEntry<K> {}

@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 
 use crate::caching::approximate_cache::ApproximateCache;
+use crate::caching::approximate_cache::DefaultApproximateCache;
 use crate::caching::approximate_cache::Tolerance;
 use crate::numerics::ApproxComparable;
 
@@ -49,6 +50,12 @@ where
 
     fn len(&self) -> usize {
         self.items.len()
+    }
+}
+
+impl <K, V> DefaultApproximateCache<K, V> for FifoCache<K, V> where K : ApproxComparable, V : Clone {
+    fn from_capacity(cap : usize) -> FifoCache<K, V> {
+        FifoCache::new(cap)
     }
 }
 

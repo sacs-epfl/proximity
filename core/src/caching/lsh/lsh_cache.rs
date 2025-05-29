@@ -1,4 +1,5 @@
 use crate::caching::approximate_cache::ApproximateCache;
+use crate::caching::approximate_cache::DefaultApproximateCache;
 use crate::caching::approximate_cache::Tolerance;
 use crate::caching::FifoCache;
 use crate::caching::LruCache;
@@ -11,104 +12,59 @@ use std::hash::Hash;
 use std::marker::PhantomData;
 
 /// A key-value store that uses cosine LSH to direct queries into fixed-size cache buckets.
-pub struct LshCache<K, V, C>
-where
-    C: ApproximateCache<K, V>,
-    K: ApproxComparable,
-{
+pub struct LshCache<C> {
     hasher: SimHashHasher,
     buckets: HashMap<Vec<bool>, C>,
     bucket_capacity: usize,
-    phantomas: PhantomData<(K, V)>,
 }
 
-impl<K, V, C> LshCache<K, V, C>
-where
-    V: Clone,
-    K: ApproxComparable + AsRef<[f32]>,
-    C: ApproximateCache<K, V>,
-{
-    /// Create a new LSH-based FIFO cache.
-    ///
-    /// `num_hash` and `dim` configure the random hyperplane hasher,
-    /// `bucket_capacity` is the max size of each FIFO bucket,
-    /// `tolerance` is used for approximate key matching in each bucket.
+pub type LshFifoCache<K, V> = LshCache<FifoCache<K, V>>;
+pub type LshLruCache<K, V> = LshCache<LruCache<K, V>>;
+
+impl<C> LshCache<C> {
     pub fn new(num_hash: usize, dim: usize, bucket_capacity: usize, seed: Option<u64>) -> Self {
-        let hasher = if let Some(seed) = seed {
-            SimHashHasher::new_seeded(num_hash, dim, seed)
-        } else {
-            SimHashHasher::new(num_hash, dim)
+        let hasher = match seed {
+            Some(s) => SimHashHasher::new_seeded(num_hash, dim, s),
+            None => SimHashHasher::new(num_hash, dim),
         };
 
         Self {
             hasher,
             buckets: HashMap::new(),
             bucket_capacity,
-            phantomas: PhantomData,
         }
     }
 
-    /// Compute the LSH signature for a key (after normalization).
     fn signature(&self, key: &[f32]) -> Vec<bool> {
         self.hasher.hash(F32Vector::from(key).normalized().as_ref())
     }
+}
 
+
+impl<K, V, C> ApproximateCache<K, V> for LshCache<C>
+where
+    V: Clone,
+    K: ApproxComparable + AsRef<[f32]>,
+    C : DefaultApproximateCache<K, V>
+{
+    /// Find a value by key, mutably accessing the bucket for potential reordering.
     fn find(&mut self, target: &K) -> Option<V> {
         let sig = self.signature(target.as_ref());
         let bucket = self.buckets.get_mut(&sig)?;
         bucket.find(target)
     }
 
+    /// Insert a key-value pair, normalizing the key before hashing and storing.
+    fn insert(&mut self, key: K, value: V, tol: f32) {
+        let sig = self.signature(key.as_ref());
+        self.buckets
+            .entry(sig)
+            .or_insert_with(|| C::from_capacity(self.bucket_capacity))
+            .insert(key, value, tol);
+    }
+
     fn len(&self) -> usize {
         self.buckets.values().map(|b| b.len()).sum()
-    }
-}
-
-impl<K, V> ApproximateCache<K, V> for LshCache<K, V, FifoCache<K, V>>
-where
-    V: Clone,
-    K: ApproxComparable + AsRef<[f32]>,
-{
-    /// Find a value by key, mutably accessing the bucket for potential reordering.
-    fn find(&mut self, target: &K) -> Option<V> {
-        self.find(target)
-    }
-
-    /// Insert a key-value pair, normalizing the key before hashing and storing.
-    fn insert(&mut self, key: K, value: V, tol: f32) {
-        let sig = self.signature(key.as_ref());
-        self.buckets
-            .entry(sig)
-            .or_insert_with(|| FifoCache::new(self.bucket_capacity))
-            .insert(key, value, tol);
-    }
-
-    fn len(&self) -> usize {
-        self.len()
-    }
-}
-
-impl<K, V> ApproximateCache<K, V> for LshCache<K, V, LruCache<K, V>>
-where
-    K: ApproxComparable + AsRef<[f32]> + Eq + Hash + Clone,
-    V: Clone,
-{
-    /// Find a value by key, mutably accessing the bucket for potential reordering.
-    fn find(&mut self, target: &K) -> Option<V> {
-        self.find(target)
-    }
-
-    /// Insert a key-value pair, normalizing the key before hashing and storing.
-    fn insert(&mut self, key: K, value: V, tol: f32) {
-        let sig = self.signature(key.as_ref());
-        self.buckets
-            .entry(sig)
-            .or_insert_with(|| LruCache::new(self.bucket_capacity))
-            .insert(key, value, tol);
-    }
-
-    fn len(&self) -> usize {
-        self.len()
     }
 }
 
@@ -167,7 +123,7 @@ mod tests {
 
     #[test]
     fn test_lsh_fifo_cache_basic() {
-        let mut cache = LshCache::new(NUM_HASH, DIM, BUCKET_CAP, Some(42));
+        let mut cache = LshFifoCache::new(NUM_HASH, DIM, BUCKET_CAP, Some(42));
 
         let k1: Vec<f32> = vec![0.1; DIM];
         let k2: Vec<f32> = vec![-0.2; DIM];
@@ -183,7 +139,7 @@ mod tests {
 
     #[test]
     fn test_lsh_fifo_cache_eviction_order() {
-        let mut cache = LshCache::new(NUM_HASH, DIM, 2, Some(123));
+        let mut cache = LshFifoCache::new(NUM_HASH, DIM, 2, Some(123));
 
         let k2 = vec![1.0; DIM];
         let k3 = vec![2.0; DIM];
@@ -201,7 +157,7 @@ mod tests {
 
     #[test]
     fn test_lsh_fifo_cache_overwrite_behavior() {
-        let mut cache = LshCache::new(NUM_HASH, DIM, 2, Some(77));
+        let mut cache = LshFifoCache::new(NUM_HASH, DIM, 2, Some(77));
 
         let k = vec![1.0; DIM];
         cache.insert(k.clone(), 111, TOL);
@@ -221,7 +177,7 @@ mod tests {
 
     #[test]
     fn test_lsh_fifo_cache_capacity_one() {
-        let mut cache = LshCache::new(NUM_HASH, DIM, 1, Some(321));
+        let mut cache = LshFifoCache::new(NUM_HASH, DIM, 1, Some(321));
 
         let k1 = vec![2.0; DIM];
         let k2 = vec![1.0; DIM];
@@ -238,8 +194,8 @@ mod tests {
 
     #[test]
     fn test_lsh_lru_cache_basic() {
-        let mut cache: LshCache<TestVecF32, _, LruCache<_, _>> =
-            LshCache::new(NUM_HASH, DIM, BUCKET_CAP, Some(99));
+        let mut cache  =
+            LshLruCache::new(NUM_HASH, DIM, BUCKET_CAP, Some(99));
 
         let k1 = TestVecF32(vec![0.1; DIM]);
         let k2 = TestVecF32(vec![-0.1; DIM]);
@@ -256,7 +212,7 @@ mod tests {
 
     #[test]
     fn test_lsh_lru_cache_eviction_order() {
-        let mut cache: LshCache<_, _, LruCache<_, _>> = LshCache::new(NUM_HASH, DIM, 2, Some(202));
+        let mut cache = LshLruCache::new(NUM_HASH, DIM, 2, Some(202));
 
         let k1 = TestVecF32(vec![1.0; DIM]);
         let k2 = TestVecF32(vec![2.0; DIM]);
@@ -276,7 +232,7 @@ mod tests {
 
     #[test]
     fn test_lsh_lru_cache_overwrite_behavior() {
-        let mut cache: LshCache<_, _, LruCache<_, _>> = LshCache::new(NUM_HASH, DIM, 2, Some(303));
+        let mut cache = LshLruCache::new(NUM_HASH, DIM, 2, Some(303));
 
         let k = TestVecF32(vec![1.0; DIM]);
         cache.insert(k.clone(), 100, TOL);
@@ -290,7 +246,7 @@ mod tests {
 
     #[test]
     fn test_lsh_lru_cache_capacity_one() {
-        let mut cache: LshCache<_, _, LruCache<_, _>> = LshCache::new(NUM_HASH, DIM, 1, Some(404));
+        let mut cache = LshLruCache::new(NUM_HASH, DIM, 1, Some(404));
 
         let k1 = TestVecF32(vec![2.0; DIM]);
         let k2 = TestVecF32(vec![1.0; DIM]);
