@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-#![feature(portable_simd, test, array_chunks)]
+#![feature(portable_simd, test)]
 
 use std::path::Path;
 

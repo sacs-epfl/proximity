@@ -1,4 +1,4 @@
-#![feature(portable_simd, test, array_chunks)]
+#![feature(portable_simd, test)]
 
 extern crate npyz;
 extern crate test;
