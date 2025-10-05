@@ -12,12 +12,6 @@ repository = "https://gitlab.epfl.ch/randl/proximity"
 name = "proximity"
 path = "src/lib.rs"
 
-[[bin]]
-name = "proximitybin"
-path = "src/main.rs"
-# tests are run in lib, no use to run them again
-test = false 
-
 [dev-dependencies]
 quickcheck = "1.0.3"
 
