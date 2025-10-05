@@ -4,11 +4,11 @@ use lsh_fifo::LshFifoCache;
 use lsh_lru::LshLruCache;
 use pyo3::prelude::*;
 
-mod vecpy;
 mod fifo;
 mod lru;
 mod lsh_fifo;
 mod lsh_lru;
+mod vecpy;
 
 /// A Python module implemented in Rust.
 #[pymodule]
