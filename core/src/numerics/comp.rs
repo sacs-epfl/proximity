@@ -26,16 +26,6 @@ impl ApproxComparable for [f32] {
     }
 }
 
-impl ApproxComparable for Vec<f32> {
-    fn roughly_matches(&self, target: &Vec<f32>, tolerance: f32) -> bool {
-        self.l2_dist_squared(target) < tolerance * tolerance
-    }
-
-    fn fuzziness(&self, instore: &Self) -> f32 {
-        self.l2_dist_squared(instore).sqrt()
-    }
-}
-
 impl ApproxComparable for i16 {
     fn fuzziness(&self, instore: &Self) -> f32 {
         let fself = f32::from(*self);

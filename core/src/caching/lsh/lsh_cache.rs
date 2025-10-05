@@ -124,9 +124,9 @@ mod tests {
     fn test_lsh_fifo_cache_basic() {
         let mut cache = LshFifoCache::new(NUM_HASH, DIM, BUCKET_CAP, Some(42));
 
-        let k1: Vec<f32> = vec![0.1; DIM];
-        let k2: Vec<f32> = vec![-0.2; DIM];
-        let k3: Vec<f32> = vec![0.1; DIM]; // same direction as k1
+        let k1 = TestVecF32(vec![0.1; DIM]);
+        let k2 = TestVecF32(vec![-0.2; DIM]);
+        let k3 = TestVecF32(vec![0.1; DIM]); // same direction as k1
 
         cache.insert(k1.clone(), 1, TOL);
         cache.insert(k2, 2, TOL);
@@ -140,9 +140,9 @@ mod tests {
     fn test_lsh_fifo_cache_eviction_order() {
         let mut cache = LshFifoCache::new(NUM_HASH, DIM, 2, Some(123));
 
-        let k2 = vec![1.0; DIM];
-        let k3 = vec![2.0; DIM];
-        let k4 = vec![3.0; DIM];
+        let k2 = TestVecF32(vec![1.0; DIM]);
+        let k3 = TestVecF32(vec![2.0; DIM]);
+        let k4 = TestVecF32(vec![3.0; DIM]);
 
         cache.insert(k2.clone(), 20, TOL);
         cache.insert(k3.clone(), 30, TOL);
@@ -158,7 +158,7 @@ mod tests {
     fn test_lsh_fifo_cache_overwrite_behavior() {
         let mut cache = LshFifoCache::new(NUM_HASH, DIM, 2, Some(77));
 
-        let k = vec![1.0; DIM];
+        let k = TestVecF32(vec![1.0; DIM]);
         cache.insert(k.clone(), 111, TOL);
         assert_eq!(cache.find(&k), Some(111));
 
@@ -169,7 +169,7 @@ mod tests {
             "FIFO-LSH will match both with a preference for oldest"
         );
 
-        cache.insert(vec![2.0; DIM], 222, TOL); // Will evict one version of k, vectors that point in the same direction have the same hash
+        cache.insert(TestVecF32(vec![2.0; DIM]), 222, TOL); // Will evict one version of k, vectors that point in the same direction have the same hash
         let maybe = cache.find(&k);
         assert!(maybe == Some(999), "LSH will find the closest match");
     }
@@ -178,8 +178,8 @@ mod tests {
     fn test_lsh_fifo_cache_capacity_one() {
         let mut cache = LshFifoCache::new(NUM_HASH, DIM, 1, Some(321));
 
-        let k1 = vec![2.0; DIM];
-        let k2 = vec![1.0; DIM];
+        let k1 = TestVecF32(vec![2.0; DIM]);
+        let k2 = TestVecF32(vec![1.0; DIM]);
         cache.insert(k1.clone(), 1, TOL);
         assert_eq!(cache.find(&k1), Some(1));
 

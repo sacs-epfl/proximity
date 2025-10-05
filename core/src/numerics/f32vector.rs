@@ -100,26 +100,6 @@ impl VectorLike for [f32] {
     }
 }
 
-// impl PartialEq for F32Vector<'_> {
-//     fn eq(&self, other: &Self) -> bool {
-//         self.array
-//             .iter()
-//             .zip(other.array.iter())
-//             .all(|(&a, &b)| a == b)
-//     }
-// }
-
-// impl Eq for F32Vector<'_> {}
-
-// impl std::hash::Hash for F32Vector<'_> {
-//     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-//         // Iterate through each element of the slice and hash it
-//         for &value in self.array {
-//             value.to_bits().hash(state); // Convert `f32` to its bit representation for consistent hashing
-//         }
-//     }
-// }
-
 #[cfg(test)]
 mod tests {
     use super::*;
