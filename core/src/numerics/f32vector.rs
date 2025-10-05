@@ -44,6 +44,7 @@ impl VectorLike for [f32] {
         intermediate_sum_x8.reduce_sum() // 8-to-1 sum
     }
 
+    #[inline]
     fn dot(&self, othr: &[f32]) -> f32 {
         debug_assert!(self.len() == othr.len());
         debug_assert!(self.len() % SIMD_LANECOUNT == 0);
