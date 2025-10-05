@@ -1,7 +1,7 @@
 use proximity::caching::{ApproximateCache, LruCache as LruInternal};
 use pyo3::{pyclass, pymethods, PyObject};
 
-use crate::api::F32VecPy;
+use crate::vecpy::VecPy;
 
 // unsendable == should hard-crash if Python tries to access it from
 // two different Python threads.
@@ -14,7 +14,7 @@ use crate::api::F32VecPy;
 // happen on the Rust side and will not be visible to the Python ML pipeline.
 #[pyclass(unsendable)]
 pub struct LruCache {
-    inner: LruInternal<F32VecPy, PyObject>,
+    inner: LruInternal<VecPy, PyObject>,
 }
 
 #[pymethods]
@@ -26,16 +26,16 @@ impl LruCache {
         }
     }
 
-    fn find(&mut self, k: F32VecPy) -> Option<PyObject> {
+    fn find(&mut self, k: VecPy) -> Option<PyObject> {
         self.inner.find(&k)
     }
 
-    fn batch_find(&mut self, ks: Vec<F32VecPy>) -> Vec<Option<PyObject>> {
+    fn batch_find(&mut self, ks: Vec<VecPy>) -> Vec<Option<PyObject>> {
         // more efficient than a python for loop
         ks.into_iter().map(|k| self.find(k)).collect()
     }
 
-    fn insert(&mut self, key: F32VecPy, value: PyObject, tolerance: f32) {
+    fn insert(&mut self, key: VecPy, value: PyObject, tolerance: f32) {
         self.inner.insert(key, value, tolerance)
     }
 

@@ -1,4 +1,4 @@
-use super::F32Vector;
+use crate::numerics::VectorLike;
 
 pub trait ApproxComparable {
     #[inline]
@@ -14,24 +14,25 @@ impl ApproxComparable for f32 {
     }
 }
 
-impl<'a> ApproxComparable for F32Vector<'a> {
-    fn roughly_matches(&self, target: &F32Vector<'a>, tolerance: f32) -> bool {
+impl ApproxComparable for [f32] {
+    #[inline]
+    fn roughly_matches(&self, target: &[f32], tolerance: f32) -> bool {
         self.l2_dist_squared(target) < tolerance * tolerance
     }
 
+    #[inline]
     fn fuzziness(&self, instore: &Self) -> f32 {
         self.l2_dist_squared(instore).sqrt()
     }
 }
 
 impl ApproxComparable for Vec<f32> {
-    fn fuzziness(&self, instore: &Self) -> f32 {
-        F32Vector::from(self as &[f32]).fuzziness(&F32Vector::from(instore as &[f32]))
+    fn roughly_matches(&self, target: &Vec<f32>, tolerance: f32) -> bool {
+        self.l2_dist_squared(target) < tolerance * tolerance
     }
 
-    fn roughly_matches(&self, instore: &Self, tolerance: f32) -> bool {
-        F32Vector::from(self as &[f32])
-            .roughly_matches(&F32Vector::from(instore as &[f32]), tolerance)
+    fn fuzziness(&self, instore: &Self) -> f32 {
+        self.l2_dist_squared(instore).sqrt()
     }
 }
 

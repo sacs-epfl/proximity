@@ -1,11 +1,11 @@
 use proximity::caching::{ApproximateCache, LshLruCache as LshLruInternal};
 use pyo3::{pyclass, pymethods, PyObject};
 
-use crate::api::F32VecPy;
+use crate::vecpy::VecPy;
 
 #[pyclass(unsendable)]
 pub struct LshLruCache {
-    inner: LshLruInternal<F32VecPy, PyObject>,
+    inner: LshLruInternal<VecPy, PyObject>,
 }
 
 #[pymethods]
@@ -18,16 +18,16 @@ impl LshLruCache {
         }
     }
 
-    fn find(&mut self, k: F32VecPy) -> Option<PyObject> {
+    fn find(&mut self, k: VecPy) -> Option<PyObject> {
         self.inner.find(&k)
     }
 
-    fn batch_find(&mut self, ks: Vec<F32VecPy>) -> Vec<Option<PyObject>> {
+    fn batch_find(&mut self, ks: Vec<VecPy>) -> Vec<Option<PyObject>> {
         // more efficient than a python for loop
         ks.into_iter().map(|k| self.find(k)).collect()
     }
 
-    fn insert(&mut self, key: F32VecPy, value: PyObject, tolerance: f32) {
+    fn insert(&mut self, key: VecPy, value: PyObject, tolerance: f32) {
         self.inner.insert(key, value, tolerance)
     }
 

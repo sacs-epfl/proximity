@@ -6,7 +6,7 @@ use crate::caching::LruCache;
 
 use crate::caching::lsh::hasher::SimHashHasher;
 use crate::numerics::ApproxComparable;
-use crate::numerics::F32Vector;
+use crate::numerics::VectorLike;
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::marker::PhantomData;
@@ -36,7 +36,7 @@ impl<C> LshCache<C> {
     }
 
     fn signature(&self, key: &[f32]) -> Vec<bool> {
-        self.hasher.hash(F32Vector::from(key).normalized().as_ref())
+        self.hasher.hash(key.normalized().as_ref())
     }
 }
 

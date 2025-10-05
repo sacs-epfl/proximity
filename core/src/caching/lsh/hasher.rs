@@ -2,7 +2,7 @@ use rand::rngs::{StdRng, ThreadRng};
 use rand::{rng, Rng, SeedableRng};
 use rand_distr::StandardNormal;
 
-use crate::numerics::{F32Vector, SIMD_LANECOUNT};
+use crate::numerics::{VectorLike, SIMD_LANECOUNT};
 
 pub struct SimHashHasher {
     stored_vectors_dim: usize,
@@ -55,7 +55,7 @@ impl SimHashHasher {
         self.projections
             .iter()
             .map(|proj| {
-                let dot: f32 = F32Vector::from(vector).dot(&F32Vector::from(proj as &[f32]));
+                let dot: f32 = vector.dot(proj);
                 dot >= 0.0
             })
             .collect()

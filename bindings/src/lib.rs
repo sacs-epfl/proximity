@@ -4,7 +4,7 @@ use lsh_fifo::LshFifoCache;
 use lsh_lru::LshLruCache;
 use pyo3::prelude::*;
 
-mod api;
+mod vecpy;
 mod fifo;
 mod lru;
 mod lsh_fifo;

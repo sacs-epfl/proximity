@@ -3,26 +3,14 @@ use std::simd::{num::SimdFloat, Simd};
 pub const SIMD_LANECOUNT: usize = 8;
 type SimdF32 = Simd<f32, SIMD_LANECOUNT>;
 
-#[derive(Debug, Clone)]
-pub struct F32Vector<'a> {
-    array: &'a [f32],
+pub trait VectorLike {
+    fn normalized(&self) -> Vec<f32>;
+    fn l2_dist(&self, other: &[f32]) -> f32;
+    fn l2_dist_squared(&self, othr: &Self) -> f32;
+    fn dot(&self, othr: &Self) -> f32;
 }
 
-impl AsRef<[f32]> for F32Vector<'_> {
-    fn as_ref(&self) -> &[f32] {
-        self.array
-    }
-}
-
-impl<'a> F32Vector<'a> {
-    pub fn len(&self) -> usize {
-        self.array.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.array.is_empty()
-    }
-
+impl VectorLike for [f32] {
     /// # Usage
     /// Computes the **SQUARED** L2 distance between two vectors.
     /// This is typically useful when comparing two distances :
@@ -37,14 +25,14 @@ impl<'a> F32Vector<'a> {
     /// Panics in debug mode if the two vectors have different lengths.
     /// In release mode, the longest vector will be silently truncated.
     #[inline]
-    pub fn l2_dist_squared(&self, othr: &F32Vector<'a>) -> f32 {
+    fn l2_dist_squared(&self, othr: &[f32]) -> f32 {
         debug_assert!(self.len() == othr.len());
         debug_assert!(self.len() % SIMD_LANECOUNT == 0);
 
         let mut intermediate_sum_x8 = Simd::<f32, SIMD_LANECOUNT>::splat(0.0);
 
-        let self_chunks = self.array.chunks_exact(SIMD_LANECOUNT);
-        let othr_chunks = othr.array.chunks_exact(SIMD_LANECOUNT);
+        let self_chunks = self.chunks_exact(SIMD_LANECOUNT);
+        let othr_chunks = othr.chunks_exact(SIMD_LANECOUNT);
 
         for (slice_self, slice_othr) in self_chunks.zip(othr_chunks) {
             let f32x8_slf = SimdF32::from_slice(slice_self);
@@ -56,15 +44,15 @@ impl<'a> F32Vector<'a> {
         intermediate_sum_x8.reduce_sum() // 8-to-1 sum
     }
 
-    pub fn dot(&self, othr: &F32Vector<'a>) -> f32 {
+    fn dot(&self, othr: &[f32]) -> f32 {
         debug_assert!(self.len() == othr.len());
         debug_assert!(self.len() % SIMD_LANECOUNT == 0);
 
         // accumulator vector of zeroes
         let mut accumulated = Simd::<f32, SIMD_LANECOUNT>::splat(0.0);
 
-        let self_chunks = self.array.chunks_exact(SIMD_LANECOUNT);
-        let othr_chunks = othr.array.chunks_exact(SIMD_LANECOUNT);
+        let self_chunks = self.chunks_exact(SIMD_LANECOUNT);
+        let othr_chunks = othr.chunks_exact(SIMD_LANECOUNT);
 
         for (slice_self, slice_othr) in self_chunks.zip(othr_chunks) {
             // load each chunk into a SIMD register
@@ -86,13 +74,13 @@ impl<'a> F32Vector<'a> {
     /// Panics in debug mode if the two vectors have different lengths.
     /// In release mode, the longest vector will be silently truncated.
     #[inline]
-    pub fn l2_dist(&self, other: &F32Vector<'a>) -> f32 {
+    fn l2_dist(&self, other: &[f32]) -> f32 {
         self.l2_dist_squared(other).sqrt()
     }
 
     /// Returns a new Vec<f32> containing `self` divided by its L2-norm.
     /// If the norm is zero, returns a zero‐filled Vec.
-    pub fn normalized(&self) -> Vec<f32> {
+    fn normalized(&self) -> Vec<f32> {
         let norm = self.dot(self).sqrt();
         if norm == 0.0 {
             // avoid division by zero; return zero vector
@@ -102,7 +90,7 @@ impl<'a> F32Vector<'a> {
 
         let mut out = Vec::with_capacity(self.len());
 
-        for chunk in self.array.chunks_exact(SIMD_LANECOUNT) {
+        for chunk in self.chunks_exact(SIMD_LANECOUNT) {
             let v = SimdF32::from_slice(chunk);
             let scaled = v * SimdF32::splat(inv_norm);
             out.extend_from_slice(&scaled.to_array());
@@ -112,37 +100,25 @@ impl<'a> F32Vector<'a> {
     }
 }
 
-impl<'a> From<&'a [f32]> for F32Vector<'a> {
-    fn from(value: &'a [f32]) -> Self {
-        F32Vector { array: value }
-    }
-}
+// impl PartialEq for F32Vector<'_> {
+//     fn eq(&self, other: &Self) -> bool {
+//         self.array
+//             .iter()
+//             .zip(other.array.iter())
+//             .all(|(&a, &b)| a == b)
+//     }
+// }
 
-impl<'a> From<F32Vector<'a>> for &'a [f32] {
-    fn from(value: F32Vector<'a>) -> Self {
-        value.array
-    }
-}
+// impl Eq for F32Vector<'_> {}
 
-impl PartialEq for F32Vector<'_> {
-    fn eq(&self, other: &Self) -> bool {
-        self.array
-            .iter()
-            .zip(other.array.iter())
-            .all(|(&a, &b)| a == b)
-    }
-}
-
-impl Eq for F32Vector<'_> {}
-
-impl std::hash::Hash for F32Vector<'_> {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        // Iterate through each element of the slice and hash it
-        for &value in self.array {
-            value.to_bits().hash(state); // Convert `f32` to its bit representation for consistent hashing
-        }
-    }
-}
+// impl std::hash::Hash for F32Vector<'_> {
+//     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+//         // Iterate through each element of the slice and hash it
+//         for &value in self.array {
+//             value.to_bits().hash(state); // Convert `f32` to its bit representation for consistent hashing
+//         }
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
@@ -159,10 +135,9 @@ mod tests {
         suspect.is_finite() && suspect >= 0.0
     }
 
-    fn l2_spec<'a>(v1: F32Vector<'a>, v2: F32Vector<'a>) -> f32 {
-        v1.array
-            .iter()
-            .zip(v2.array.iter())
+    fn l2_spec<'a>(v1: &[f32], v2: &[f32]) -> f32 {
+        v1.iter()
+            .zip(v2.iter())
             .map(|(&x, &y)| {
                 let diff = x - y;
                 diff * diff
@@ -177,7 +152,7 @@ mod tests {
             if totest[0..usable_length].iter().any(|x| !x.is_finite()) {
                 return TestResult::discard();
             }
-            let testvec = F32Vector::from(&totest[0..usable_length]);
+            let testvec = &totest[0..usable_length];
             let selfsim = testvec.l2_dist(&testvec);
             let to_check = is_valid_l2(selfsim) && close(selfsim, 0.0);
             return TestResult::from_bool(to_check);
@@ -198,10 +173,7 @@ mod tests {
         fn qc_squared_invariant(u: Vec<f32>, v: Vec<f32>, w: Vec<f32>, x: Vec<f32>) -> TestResult {
             let all_vecs = [u, v, w, x]; //no need to check for NaNs in this case
             let min_length = all_vecs.iter().map(|x| x.len()).min().unwrap() / 8 * 8;
-            let all_vectors: Vec<F32Vector> = all_vecs
-                .iter()
-                .map(|vec| F32Vector::from(&vec[..min_length]))
-                .collect();
+            let all_vectors: Vec<&[f32]> = all_vecs.iter().map(|vec| &vec[..min_length]).collect();
 
             let d1_squared = all_vectors[0].l2_dist_squared(&all_vectors[1]);
             let d2_squared = all_vectors[2].l2_dist_squared(&all_vectors[3]);
@@ -223,10 +195,7 @@ mod tests {
     fn simd_matches_spec() {
         fn qc_simd_matches_spec(u: Vec<f32>, v: Vec<f32>) -> TestResult {
             let min_length = u.len().min(v.len()) / 8 * 8;
-            let (u_f32v, v_f32v) = (
-                F32Vector::from(&u[0..min_length]),
-                F32Vector::from(&v[0..min_length]),
-            );
+            let (u_f32v, v_f32v) = (&u[0..min_length], &v[0..min_length]);
             let simd = u_f32v.l2_dist_squared(&v_f32v);
             let spec = l2_spec(u_f32v, v_f32v);
 
