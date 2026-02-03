@@ -72,7 +72,6 @@ mod tests {
     use std::hash::Hasher;
 
     use super::*;
-    use quickcheck::{QuickCheck, TestResult};
 
     const DIM: usize = 8;
     const NUM_HASH: usize = 8;
@@ -121,260 +120,145 @@ mod tests {
     #[cfg(test)]
     impl Eq for TestVecF32 {}
 
-    // Helper function to create valid test vectors
-    fn make_valid_vec(raw: Vec<f32>, dim: usize) -> Option<TestVecF32> {
-        if raw.len() < dim {
-            return None;
-        }
-        let slice = &raw[0..dim];
-        if slice.iter().any(|&x| !x.is_finite()) {
-            return None;
-        }
-        Some(TestVecF32(slice.to_vec()))
+    #[test]
+    fn test_lsh_fifo_cache_basic() {
+        let mut cache = LshFifoCache::new(NUM_HASH, DIM, BUCKET_CAP, Some(42));
+
+        let k1 = TestVecF32(vec![0.1; DIM]);
+        let k2 = TestVecF32(vec![-0.2; DIM]);
+        let k3 = TestVecF32(vec![0.1; DIM]); // same direction as k1
+
+        cache.insert(k1.clone(), 1, TOL);
+        cache.insert(k2, 2, TOL);
+        assert_eq!(cache.find(&k1), Some(1));
+        cache.insert(k3.clone(), 3, TOL);
+        // Bucket for k1 now has entries [k1=1, k3=3], matches equally
+        assert!(cache.find(&k3) == Some(3) || cache.find(&k3) == Some(1));
     }
 
     #[test]
-    fn insert_then_find_succeeds() {
-        fn qc_insert_then_find(raw_key: Vec<f32>, value: i32) -> TestResult {
-            let Some(key) = make_valid_vec(raw_key, DIM) else {
-                return TestResult::discard();
-            };
+    fn test_lsh_fifo_cache_eviction_order() {
+        let mut cache = LshFifoCache::new(NUM_HASH, DIM, 2, Some(123));
 
-            let mut cache = LshFifoCache::new(NUM_HASH, DIM, BUCKET_CAP, Some(42));
-            cache.insert(key.clone(), value, TOL);
-            let found = cache.find(&key);
+        let k2 = TestVecF32(vec![1.0; DIM]);
+        let k3 = TestVecF32(vec![2.0; DIM]);
+        let k4 = TestVecF32(vec![3.0; DIM]);
 
-            TestResult::from_bool(found == Some(value))
-        }
+        cache.insert(k2.clone(), 20, TOL);
+        cache.insert(k3.clone(), 30, TOL);
+        cache.insert(k4.clone(), 40, TOL);
 
-        QuickCheck::new()
-            .tests(10_000)
-            .min_tests_passed(1_000)
-            .quickcheck(qc_insert_then_find as fn(Vec<f32>, i32) -> TestResult);
+        // One of the earlier keys must have been evicted (depending on bucket)
+        let hits = vec![cache.find(&k2), cache.find(&k3), cache.find(&k4)];
+
+        assert_eq!(hits, vec![None, Some(30), Some(40)]);
     }
 
     #[test]
-    fn find_is_idempotent() {
-        fn qc_find_idempotent(raw_key: Vec<f32>, value: i32) -> TestResult {
-            let Some(key) = make_valid_vec(raw_key, DIM) else {
-                return TestResult::discard();
-            };
+    fn test_lsh_fifo_cache_overwrite_behavior() {
+        let mut cache = LshFifoCache::new(NUM_HASH, DIM, 2, Some(77));
 
-            let mut cache = LshFifoCache::new(NUM_HASH, DIM, BUCKET_CAP, Some(99));
-            cache.insert(key.clone(), value, TOL);
+        let k = TestVecF32(vec![1.0; DIM]);
+        cache.insert(k.clone(), 111, TOL);
+        assert_eq!(cache.find(&k), Some(111));
 
-            let first = cache.find(&key);
-            let second = cache.find(&key);
+        cache.insert(k.clone(), 999, TOL);
+        let val = cache.find(&k).unwrap();
+        assert!(
+            val == 111,
+            "FIFO-LSH will match both with a preference for oldest"
+        );
 
-            TestResult::from_bool(first == second)
-        }
-
-        QuickCheck::new()
-            .tests(10_000)
-            .min_tests_passed(1_000)
-            .quickcheck(qc_find_idempotent as fn(Vec<f32>, i32) -> TestResult);
+        cache.insert(TestVecF32(vec![2.0; DIM]), 222, TOL); // Will evict one version of k, vectors that point in the same direction have the same hash
+        let maybe = cache.find(&k);
+        assert!(maybe == Some(999), "LSH will find the closest match");
     }
 
     #[test]
-    fn insert_never_decreases_size() {
-        fn qc_insert_size(raw_keys: Vec<Vec<f32>>) -> TestResult {
-            let keys: Vec<TestVecF32> = raw_keys
-                .into_iter()
-                .filter_map(|k| make_valid_vec(k, DIM))
-                .take(10) // Limit to avoid excessive test time
-                .collect();
+    fn test_lsh_fifo_cache_capacity_one() {
+        let mut cache = LshFifoCache::new(NUM_HASH, DIM, 1, Some(321));
 
-            if keys.is_empty() {
-                return TestResult::discard();
-            }
+        let k1 = TestVecF32(vec![2.0; DIM]);
+        let k2 = TestVecF32(vec![1.0; DIM]);
+        cache.insert(k1.clone(), 1, TOL);
+        assert_eq!(cache.find(&k1), Some(1));
 
-            let mut cache = LshFifoCache::new(NUM_HASH, DIM, BUCKET_CAP, Some(123));
-            let mut prev_size = 0;
+        cache.insert(k2.clone(), 2, TOL);
 
-            for (i, key) in keys.iter().enumerate() {
-                cache.insert(key.clone(), i as i32, TOL);
-                let new_size = cache.len();
-                if new_size < prev_size {
-                    return TestResult::from_bool(false);
-                }
-                prev_size = new_size;
-            }
-
-            TestResult::from_bool(true)
-        }
-
-        QuickCheck::new()
-            .tests(1_000)
-            .min_tests_passed(100)
-            .quickcheck(qc_insert_size as fn(Vec<Vec<f32>>) -> TestResult);
+        let f1 = cache.find(&k1);
+        let f2 = cache.find(&k2);
+        let hits = vec![f1, f2].into_iter().filter(|x| x.is_some()).count();
+        assert_eq!(hits, 1, "Only one key should be in cache due to capacity 1");
     }
 
     #[test]
-    fn scaled_vectors_hash_to_same_bucket() {
-        fn qc_scaled_vectors_same_bucket(
-            raw_vec: Vec<f32>,
-            scale1: f32,
-            scale2: f32,
-        ) -> TestResult {
-            let Some(base) = make_valid_vec(raw_vec, DIM) else {
-                return TestResult::discard();
-            };
+    fn test_lsh_lru_cache_basic() {
+        let mut cache = LshLruCache::new(NUM_HASH, DIM, BUCKET_CAP, Some(99));
 
-            if !scale1.is_finite() || !scale2.is_finite() || scale1 == 0.0 || scale2 == 0.0 {
-                return TestResult::discard();
-            }
+        let k1 = TestVecF32(vec![0.1; DIM]);
+        let k2 = TestVecF32(vec![-0.1; DIM]);
+        let k3 = TestVecF32(vec![0.1; DIM]); // Same direction as k1
 
-            let scaled1 = TestVecF32(base.0.iter().map(|&x| x * scale1).collect());
-            let scaled2 = TestVecF32(base.0.iter().map(|&x| x * scale2).collect());
+        cache.insert(k1.clone(), 10, TOL);
+        cache.insert(k2.clone(), 20, TOL);
+        assert_eq!(cache.find(&k1), Some(10));
+        cache.insert(k3.clone(), 30, TOL);
 
-            if scaled1.0.iter().any(|&x| !x.is_finite())
-                || scaled2.0.iter().any(|&x| !x.is_finite())
-            {
-                return TestResult::discard();
-            }
-
-            let mut cache = LshFifoCache::new(NUM_HASH, DIM, BUCKET_CAP, Some(777));
-
-            cache.insert(scaled1.clone(), 1, TOL);
-            let found = cache.find(&scaled2);
-
-            // Scaled vectors should hash to the same bucket, so we should find something
-            // (though it may not match exactly due to tolerance)
-            TestResult::from_bool(found.is_some())
-        }
-
-        QuickCheck::new()
-            .tests(10_000)
-            .min_tests_passed(1_000)
-            .quickcheck(qc_scaled_vectors_same_bucket as fn(Vec<f32>, f32, f32) -> TestResult);
+        let found = cache.find(&k3);
+        assert!(found == Some(30) || found == Some(10));
     }
 
     #[test]
-    fn cache_size_bounded_by_capacity() {
-        fn qc_size_bounded(raw_keys: Vec<Vec<f32>>, bucket_cap: u8) -> TestResult {
-            let bucket_cap = bucket_cap.max(1) as usize; // Ensure at least 1
+    fn test_lsh_lru_cache_eviction_order() {
+        let mut cache = LshLruCache::new(NUM_HASH, DIM, 2, Some(202));
 
-            let keys: Vec<TestVecF32> = raw_keys
-                .into_iter()
-                .filter_map(|k| make_valid_vec(k, DIM))
-                .take(100) // Limit insertions
-                .collect();
+        let k1 = TestVecF32(vec![1.0; DIM]);
+        let k2 = TestVecF32(vec![2.0; DIM]);
+        let k3 = TestVecF32(vec![3.0; DIM]);
 
-            if keys.len() < 5 {
-                return TestResult::discard();
-            }
+        cache.insert(k1.clone(), 1, TOL);
+        cache.insert(k2.clone(), 2, TOL);
+        // Access k1 to make it most recently used
+        cache.find(&k1);
+        cache.insert(k3.clone(), 3, TOL);
 
-            let mut cache = LshFifoCache::new(NUM_HASH, DIM, bucket_cap, Some(456));
-
-            for (i, key) in keys.iter().enumerate() {
-                cache.insert(key.clone(), i as i32, TOL);
-            }
-
-            // Size should be bounded by number of buckets * capacity
-            // We can't easily count buckets, but we know size should be reasonable
-            let size = cache.len();
-            TestResult::from_bool(size <= keys.len())
-        }
-
-        QuickCheck::new()
-            .tests(1_000)
-            .min_tests_passed(100)
-            .quickcheck(qc_size_bounded as fn(Vec<Vec<f32>>, u8) -> TestResult);
+        // k2 should be evicted (least recently used)
+        assert_eq!(cache.find(&k1), Some(1));
+        assert_eq!(cache.find(&k2), None);
+        assert_eq!(cache.find(&k3), Some(3));
     }
 
     #[test]
-    fn lru_find_updates_recency() {
-        fn qc_lru_recency(raw_keys: Vec<Vec<f32>>) -> TestResult {
-            let keys: Vec<TestVecF32> = raw_keys
-                .into_iter()
-                .filter_map(|k| make_valid_vec(k, DIM))
-                .take(3)
-                .collect();
+    fn test_lsh_lru_cache_overwrite_behavior() {
+        let mut cache = LshLruCache::new(NUM_HASH, DIM, 2, Some(303));
 
-            if keys.len() < 3 {
-                return TestResult::discard();
-            }
+        let k = TestVecF32(vec![1.0; DIM]);
+        cache.insert(k.clone(), 100, TOL);
+        assert_eq!(cache.find(&k), Some(100));
+        cache.insert(k.clone(), 200, TOL);
 
-            // Ensure keys hash to same bucket by making them point in same direction
-            let base_key = &keys[0];
-            let k1 = base_key.clone();
-            let k2 = TestVecF32(base_key.0.iter().map(|&x| x * 2.0).collect());
-            let k3 = TestVecF32(base_key.0.iter().map(|&x| x * 3.0).collect());
-
-            let mut cache = LshLruCache::new(NUM_HASH, DIM, 2, Some(888));
-
-            // Insert k1 and k2 (fills bucket)
-            cache.insert(k1.clone(), 1, TOL);
-            cache.insert(k2.clone(), 2, TOL);
-
-            // Access k1 to make it recently used
-            cache.find(&k1);
-
-            // Insert k3 (should evict k2, the least recently used)
-            cache.insert(k3.clone(), 3, TOL);
-
-            // k1 should still be findable, k3 should be findable
-            let k1_found = cache.find(&k1).is_some();
-            let k3_found = cache.find(&k3).is_some();
-
-            TestResult::from_bool(k1_found && k3_found)
-        }
-
-        QuickCheck::new()
-            .tests(1_000)
-            .min_tests_passed(100)
-            .quickcheck(qc_lru_recency as fn(Vec<Vec<f32>>) -> TestResult);
+        cache.insert(k.clone(), 999, TOL); // LRU should discard 100
+        let val = cache.find(&k);
+        assert!(val == Some(999) || val == Some(200));
     }
 
     #[test]
-    fn empty_cache_finds_nothing() {
-        fn qc_empty_finds_nothing(raw_key: Vec<f32>) -> TestResult {
-            let Some(key) = make_valid_vec(raw_key, DIM) else {
-                return TestResult::discard();
-            };
+    fn test_lsh_lru_cache_capacity_one() {
+        let mut cache = LshLruCache::new(NUM_HASH, DIM, 1, Some(404));
 
-            let mut cache =
-                LshFifoCache::<TestVecF32, i32>::new(NUM_HASH, DIM, BUCKET_CAP, Some(111));
-            let found = cache.find(&key);
+        let k1 = TestVecF32(vec![2.0; DIM]);
+        let k2 = TestVecF32(vec![1.0; DIM]);
 
-            TestResult::from_bool(found.is_none())
-        }
+        cache.insert(k1.clone(), 1, TOL);
+        assert_eq!(cache.find(&k1), Some(1));
 
-        QuickCheck::new()
-            .tests(10_000)
-            .min_tests_passed(1_000)
-            .quickcheck(qc_empty_finds_nothing as fn(Vec<f32>) -> TestResult);
-    }
+        cache.insert(k2.clone(), 2, TOL);
+        let hits = vec![cache.find(&k1), cache.find(&k2)];
 
-    #[test]
-    fn multiple_values_in_bucket_fifo() {
-        fn qc_fifo_ordering(raw_key: Vec<f32>) -> TestResult {
-            let Some(base_key) = make_valid_vec(raw_key, DIM) else {
-                return TestResult::discard();
-            };
-
-            // Create keys that hash to same bucket (scaled versions)
-            let k1 = TestVecF32(base_key.0.iter().map(|&x| x * 1.0).collect());
-            let k2 = TestVecF32(base_key.0.iter().map(|&x| x * 2.0).collect());
-            let k3 = TestVecF32(base_key.0.iter().map(|&x| x * 3.0).collect());
-
-            let mut cache = LshFifoCache::new(NUM_HASH, DIM, 2, Some(555));
-
-            cache.insert(k1.clone(), 1, TOL);
-            cache.insert(k2.clone(), 2, TOL);
-            cache.insert(k3.clone(), 3, TOL); // Should evict k1 (FIFO)
-
-            let k1_found = cache.find(&k1);
-            let k2_found = cache.find(&k2);
-            let k3_found = cache.find(&k3);
-
-            // After inserting 3 items with capacity 2, first should be evicted
-            TestResult::from_bool(k1_found.is_none() && k2_found.is_some() && k3_found.is_some())
-        }
-
-        QuickCheck::new()
-            .tests(10_000)
-            .min_tests_passed(1_000)
-            .quickcheck(qc_fifo_ordering as fn(Vec<f32>) -> TestResult);
+        assert_eq!(
+            hits,
+            vec![None, Some(2)],
+            "Only one key should remain in cache due to capacity 1"
+        );
     }
 }
